@@ -28,13 +28,13 @@ docker run --rm --cpus 4 --memory 10g --pids-limit 1024 \
 
 The harness, command-line options and measurement boundaries are documented in
 [benchmarks/README.md](../benchmarks/README.md). GitHub CI is configured for a
-short correctness smoke run; that hosted job has not been executed. Equivalent
+short correctness smoke run; all 30 hosted scenarios passed with zero errors. Equivalent
 smoke runs passed locally on Linux GCC 14 and macOS Apple Clang, including a
 macOS ASan/UBSan build.
 
 ## Recorded environment and workload
 
-The run began at 21:03:15 UTC on 13 November 2026 on an AMD Ryzen 9 9950X Linux
+The run began at 22:58:56 UTC on 13 November 2026 on an AMD Ryzen 9 9950X Linux
 x86-64 host. Client and server ran as separate processes in one Ubuntu 24.04
 container, sharing a four-CPU quota and 10 GiB memory limit. GCC 14.2 compiled
 Release builds (`-O3 -DNDEBUG`). The dependency baseline was
@@ -67,24 +67,24 @@ the named protocol. “Native” uses native gRPC C++ at both ends.
 
 | Payload bytes | Concurrency | Connect RPC/s | gRPC RPC/s | Native RPC/s |
 | --- | --- | ---: | ---: | ---: |
-| 0 | 1 | 30,331 | 21,632 | 22,783 |
-| 0 | 16 | 55,224 | 41,416 | 89,384 |
-| 1,024 | 1 | 27,351 | 19,728 | 21,215 |
-| 1,024 | 16 | 50,462 | 40,333 | 73,012 |
-| 65,536 | 1 | 9,418 | 8,100 | 10,872 |
-| 65,536 | 16 | 16,447 | 14,929 | 28,317 |
+| 0 | 1 | 27,884 | 20,176 | 21,498 |
+| 0 | 16 | 52,004 | 40,530 | 70,141 |
+| 1,024 | 1 | 26,678 | 18,032 | 20,571 |
+| 1,024 | 16 | 48,443 | 38,818 | 66,800 |
+| 65,536 | 1 | 8,674 | 7,364 | 10,179 |
+| 65,536 | 16 | 15,839 | 14,808 | 27,310 |
 
 The following are medians of each run's p99 latency, in microseconds. They are
 not percentiles of pooled observations. Raw rows also contain p50 and p95.
 
 | Payload bytes | Concurrency | Connect p99 µs | gRPC p99 µs | Native p99 µs |
 | --- | --- | ---: | ---: | ---: |
-| 0 | 1 | 47.0 | 75.9 | 64.2 |
-| 0 | 16 | 405.3 | 403.8 | 297.4 |
-| 1,024 | 1 | 90.0 | 127.6 | 69.8 |
-| 1,024 | 16 | 446.4 | 431.1 | 352.1 |
-| 65,536 | 1 | 161.8 | 156.6 | 131.0 |
-| 65,536 | 16 | 1,151.3 | 1,256.7 | 950.1 |
+| 0 | 1 | 85.9 | 120.2 | 66.0 |
+| 0 | 16 | 428.2 | 531.9 | 375.7 |
+| 1,024 | 1 | 71.9 | 136.2 | 86.1 |
+| 1,024 | 16 | 507.4 | 500.6 | 381.8 |
+| 65,536 | 1 | 196.7 | 274.2 | 144.1 |
+| 65,536 | 16 | 1,241.3 | 1,423.6 | 1,046.6 |
 
 Native gRPC delivered higher throughput at concurrency 16 for every tested
 payload size. Connectcpp's Connect mode delivered higher throughput for the

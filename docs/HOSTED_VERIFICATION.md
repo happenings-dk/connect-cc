@@ -26,7 +26,7 @@ to that entry count. Test profiles and the pinned suite revision remain in
 | vcpkg package | Pass: installed examples and 21 public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197810237) |
 | Conan package | Pass: 222 tests, installed examples and public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197809663) |
 | Parser fuzzing | Pass: 2,770,352 inputs in 121 seconds, no finding | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811548) |
-| Benchmark harness smoke | In progress | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43515948558) |
+| Benchmark harness smoke | Pass: all 30 scenarios, zero errors | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43515948558) |
 
 The first macOS job failed because the runner's AppleClang 17/libc++ did not
 provide `std::jthread`. One callback test now uses `std::thread`; it already
@@ -53,6 +53,18 @@ platforms, preventing accidental reliance on POSIX types. Both build and package
 configuration require nghttp2 1.61 or newer, where these APIs are available.
 This runtime change requires fresh verification; the initial successful jobs
 above remain historical evidence until the updated checks finish.
+
+The portable API implementation at `27aa874` passes all 222 entries locally on
+macOS Apple Clang, both normally and with ASan/UBSan. Independent Linux GCC 14,
+Clang 18, ASan/UBSan and instrumented TSan runs also pass all 222 entries and
+installed consumers/headers. The Conan package passes the complete suite and
+installed consumers. The vcpkg package independently passes both installed
+examples and all 21 public headers. The repeated benchmark run passes all 90
+scenarios and 449,640 measured RPCs with zero errors; see [BENCHMARKS.md](BENCHMARKS.md).
+A fresh parser fuzz run completed 6,472,150 inputs in 121
+seconds without a finding. These results are retained under
+`build/verification/portable-nghttp2/`; the corrected hosted Windows job remains
+the outstanding platform gate.
 
 Artifacts retain JUnit results, CTest logs and CMake diagnostics for 14 days.
 Downloaded copies and complete job logs are preserved in the development

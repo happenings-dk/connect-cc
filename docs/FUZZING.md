@@ -54,4 +54,8 @@ Linux Clang 18 ASan/UBSan limits. Mode 6 now also feeds arbitrary encoding lists
 to the Connect streaming request decoder; `fuzz/corpus/encoding-preference`
 seeds an identity-before-gzip list. The latest log and evolved corpus are
 retained under `build/verification/release-audit/` in the development workspace.
-This is the latest campaign against the current runtime.
+After the nghttp2 portability migration, another campaign completed 6,472,150
+inputs in 121 seconds without a finding. Its log is retained under
+`build/verification/portable-nghttp2/fuzz-final-audit.log`; the evolved corpus
+remains in the task verification workspace. This is the latest campaign against
+the current runtime.
