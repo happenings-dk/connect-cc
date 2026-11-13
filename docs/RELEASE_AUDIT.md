@@ -98,10 +98,12 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
   the replacement job has started. Do not declare v1 complete or Windows supported until the
   configured MSVC build, full CTest suite and installed consumers pass.
 
-The Linux arm64 and pinned macOS package-manager lanes in CI are additional
-configured coverage, not executed results. The verified claims above name the
-actual architecture, compiler and dependency stack; they do not infer all
-platform/architecture combinations from one successful build.
+Hosted Linux arm64 and the pinned macOS dependency stack now also pass all 222
+tests and installed consumers. The macOS runner required a test-only thread
+portability fix. [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records the
+exact jobs, revisions, original failure and corrected result. Other pending
+jobs remain explicitly unverified; results do not imply every possible
+platform/architecture combination.
 
 Application-owned connection establishment, listener lifetime and cooperative
 handler cancellation follow the accepted executor model. Graceful RPC drain is
