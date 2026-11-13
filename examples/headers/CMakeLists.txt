@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.25)
+project(connectcpp_headers LANGUAGES CXX)
+find_package(connectcpp CONFIG REQUIRED)
+get_target_property(include_directories connectcpp::connectcpp INTERFACE_INCLUDE_DIRECTORIES)
+# CMakeDeps may wrap target properties in configuration generator expressions;
+# its package-level include variable supplies concrete paths at configure time.
+list(PREPEND include_directories ${connectcpp_INCLUDE_DIRS})
+foreach(directory IN LISTS include_directories)
+  if(EXISTS "${directory}/connectrpc/rpc.h")
+    set(public_include_directory "${directory}")
+    break()
+  endif()
+endforeach()
+if(NOT public_include_directory)
+  message(FATAL_ERROR "Cannot locate installed connectcpp public headers")
+endif()
+file(GLOB public_headers RELATIVE "${public_include_directory}/connectrpc"
+  "${public_include_directory}/connectrpc/*.h")
+foreach(header IN LISTS public_headers)
+  get_filename_component(target_name "${header}" NAME_WE)
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cc"
+    "#include \"connectrpc/${header}\"\n")
+  add_library("header_${target_name}" OBJECT "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cc")
+  target_link_libraries("header_${target_name}" PRIVATE connectcpp::connectcpp)
+endforeach()
+list(LENGTH public_headers header_count)
+message(STATUS "Compiling ${header_count} installed public headers independently")

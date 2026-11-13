@@ -1,0 +1,7 @@
+version: v2
+plugins:
+  - protoc_builtin: cpp
+    out: build/buf-generated
+  - local: bin/protoc-gen-connect-cpp
+    out: build/buf-generated
+    opt: paths=source_relative

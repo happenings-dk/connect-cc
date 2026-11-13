@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.25)
+if(NOT DEFINED OUTPUT_ROOT OR NOT IS_ABSOLUTE "${OUTPUT_ROOT}")
+  message(FATAL_ERROR "Set OUTPUT_ROOT to an absolute directory for the overlay")
+endif()
+get_filename_component(source_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+set(port_root "${OUTPUT_ROOT}/connectcpp")
+if(EXISTS "${port_root}")
+  message(FATAL_ERROR "Use a fresh OUTPUT_ROOT; refusing to overwrite ${port_root}")
+endif()
+file(MAKE_DIRECTORY "${port_root}/source")
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/connectcpp/portfile.cmake"
+          "${CMAKE_CURRENT_LIST_DIR}/connectcpp/vcpkg.json"
+     DESTINATION "${port_root}")
+foreach(entry CMakeLists.txt include src proto cmake README.md LICENSE)
+  file(COPY "${source_root}/${entry}" DESTINATION "${port_root}/source")
+endforeach()
+file(READ "${source_root}/vcpkg.json" manifest)
+string(JSON baseline GET "${manifest}" builtin-baseline)
+file(MAKE_DIRECTORY "${OUTPUT_ROOT}/manifest")
+file(WRITE "${OUTPUT_ROOT}/manifest/vcpkg.json"
+  "{\n  \"name\": \"connectcpp-package-check\",\n  \"version-semver\": \"0.0.0\",\n  \"builtin-baseline\": \"${baseline}\",\n  \"dependencies\": [\"connectcpp\"]\n}\n")
+message(STATUS "Prepared self-contained connectcpp overlay at ${OUTPUT_ROOT}")

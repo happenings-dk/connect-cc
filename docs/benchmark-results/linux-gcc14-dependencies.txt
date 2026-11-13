@@ -1,0 +1,177 @@
+Package: vcpkg-cmake-config
+Version: 2026-07-21
+Architecture: x64-linux
+Multi-Arch: same
+Abi: f4e2e178e26492a679be68c10a524cecb2cdbd28686a8bd752f19273b40adb81
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2025-08-07
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 3620c1359e131ef07e16940142f0854352a7a8d5b48e8811778600d11292b878
+Status: install ok installed
+
+Package: abseil
+Version: 20260107.1
+Port-Version: 3
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 3329cb56bca815a0611ea86f6c34c13d1f20632058df34724e433d37b60717f5
+Description: Abseil is an open-source collection of C++ library code designed to augment the C++ standard library. The Abseil library code is collected from Google's own C++ code base, has been extensively tested and used in production, and is the same code we depend on in our daily coding lives.
+    In some cases, Abseil provides pieces missing from the C++ standard; in others, Abseil provides alternatives to the standard for special needs we've found through usage in the Google code base. We denote those cases clearly within the library code we provide you.
+    Abseil is not meant to be a competitor to the standard library; we've just found that many of these utilities serve a purpose within our code base, and we now want to provide those resources to the C++ community as a whole.
+Status: install ok installed
+
+Package: asio
+Version: 1.38.2
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: b96805da6174fe2b90bcbf3ab98ddcdfeca106e0527c0f45c267689c49f6dea6
+Description: Asio is a cross-platform C++ library for network and low-level I/O programming that provides developers with a consistent asynchronous model using a modern C++ approach.
+Status: install ok installed
+
+Package: llhttp
+Version: 9.4.3
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 9c93daf41552c8d110ad37a563f9a2a2355b9207c274936bf840eaed6a66a06f
+Description: Port of http_parser to llparse.
+Status: install ok installed
+
+Package: nghttp2
+Version: 1.71.0
+Depends: vcpkg-cmake
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 1f8e15dfcf90379b84aa3f533e03f5dbf41bad55ed41b18caad314dda868bc87
+Description: Implementation of the Hypertext Transfer Protocol version 2 in C
+Status: install ok installed
+
+Package: vcpkg-cmake-get-vars
+Version: 2025-05-29
+Depends: vcpkg-cmake
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 7ab1c5d675743ebe157a6c3a0ece763522351a98f0cf2380696dbca3019357b5
+Status: install ok installed
+
+Package: openssl
+Version: 3.6.5
+Port-Version: 2
+Depends: vcpkg-cmake, vcpkg-cmake-config, vcpkg-cmake-get-vars
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 8ffa254f54fdf509fddc416c20ea6f536c6ee6d0e454d0a8849e0419350c8c1b
+Description: OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.
+Status: install ok installed
+
+Package: openssl
+Feature: tools
+Architecture: x64-linux
+Multi-Arch: same
+Description: Install openssl executable and scripts
+Status: install ok installed
+
+Package: vcpkg-tool-meson
+Version: 1.12.1
+Port-Version: 1
+Depends: vcpkg-cmake-get-vars
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 0e9f6d9d5c3c96b02bb4b520473e0bdcfb92184dc1f9675bd65d461187097256
+Description: Meson build system
+Status: install ok installed
+
+Package: pkgconf
+Version: 3.0.3
+Port-Version: 1
+Depends: vcpkg-tool-meson
+Architecture: x64-linux
+Multi-Arch: same
+Abi: f964bffd4ed6be30a118e34c935147b4ac7e7863ccc91c1958404e290e605910
+Description: pkgconf is a program which helps to configure compiler and linker flags for development libraries. It is similar to pkg-config from freedesktop.org.
+Status: install ok installed
+
+Package: utf8-range
+Version: 7.36.2
+Depends: abseil, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 4056f11e2b88c195bcb60c5f4ddfc7279bc4192e0e606e1ab3f8d8d056d66065
+Description: Fast UTF-8 validation with Range algorithm (NEON+SSE4+AVX2)
+Status: install ok installed
+
+Package: protobuf
+Version: 7.36.2
+Port-Version: 1
+Depends: abseil, utf8-range, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: d9d5f2a1a0113ee4df3455a14f30b9e9f61fe16eceaf7c818286f344f753bd5b
+Description: Google's language-neutral, platform-neutral, extensible mechanism for serializing structured data.
+Status: install ok installed
+
+Package: protobuf
+Feature: libprotoc
+Architecture: x64-linux
+Multi-Arch: same
+Description: Build the libprotoc compiler library for target builds.
+Status: install ok installed
+
+Package: zlib
+Version: 1.4
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 3f42007baeae6e1813717608ec4323b0331df69d36d5891218eef5241667ed47
+Description: A compression library
+Status: install ok installed
+
+Package: re2
+Version: 2025-11-05
+Depends: abseil, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: 61d89faa04bb19336b556cb252b03b4339a8b005f20509fd4564cec025ded75b
+Description: RE2 is a fast, safe, thread-friendly alternative to backtracking regular expression engines like those used in PCRE, Perl, and Python. It is a C++ library.
+Status: install ok installed
+
+Package: c-ares
+Version: 1.34.9
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: f6901ab831c5ccc9b44cb0a8e87b13c176b6947217bbe13689d34036f0a7003d
+Description: A C library for asynchronous DNS requests
+Status: install ok installed
+
+Package: grpc
+Version: 1.84.0
+Depends: abseil, c-ares, openssl, protobuf, re2, utf8-range, vcpkg-cmake, vcpkg-cmake-config, zlib
+Architecture: x64-linux
+Multi-Arch: same
+Abi: c085b3de12877bdf7fcd42bcf5cc91e4ee982d8e83239004a69c749890025f88
+Description: gRPC is a modern, open source, high-performance remote procedure call (RPC) framework that can run anywhere. gRPC enables client and server applications to communicate transparently, and simplifies the building of connected systems.
+Status: install ok installed
+
+Package: grpc
+Feature: codegen
+Depends: protobuf
+Architecture: x64-linux
+Multi-Arch: same
+Description: Build code generator machinery
+Status: install ok installed
+
+Package: gtest
+Version: 1.18.0
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-linux
+Multi-Arch: same
+Abi: ea476cfd9704d91e06ff10ed9654e1ea1fbccbb9ea672f553b7c4b6363db7721
+Description: Google Testing and Mocking Framework
+Status: install ok installed
+

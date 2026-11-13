@@ -1,0 +1,20 @@
+syntax = "proto3";
+package test.v1;
+
+import "shared/v1/types.proto";
+service Echo {
+  rpc Say(shared.v1.Outer.Nested) returns (shared.v1.Outer.Nested) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc class(shared.v1.class) returns (shared.v1.class);
+  rpc class_(shared.v1.class) returns (shared.v1.class);
+  rpc EchoClient(shared.v1.Outer.Nested) returns (shared.v1.Outer.Nested);
+}
+service Mirror {
+  rpc Say(shared.v1.Outer.Nested) returns (shared.v1.Outer.Nested);
+}
+service Streaming {
+  rpc Expand(shared.v1.Outer.Nested) returns (stream shared.v1.class);
+  rpc Collect(stream shared.v1.Outer.Nested) returns (shared.v1.class);
+  rpc Chat(stream shared.v1.Outer.Nested) returns (stream shared.v1.class);
+}

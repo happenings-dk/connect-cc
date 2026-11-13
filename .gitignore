@@ -1,0 +1,9 @@
+/build*/
+/install*/
+/.ci-vcpkg/
+/vcpkg_installed/
+/bin/
+.DS_Store
+__pycache__/
+**/CMakeUserPresets.json
+/test_package/build/

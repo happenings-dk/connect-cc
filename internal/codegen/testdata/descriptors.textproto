@@ -1,0 +1,99 @@
+file {
+  name: "shared/v1/types.proto"
+  package: "shared.v1"
+  message_type {
+    name: "Outer"
+    nested_type {
+      name: "Nested"
+      field {
+        name: "value"
+        number: 1
+        label: LABEL_OPTIONAL
+        type: TYPE_STRING
+        json_name: "value"
+      }
+      field {
+        name: "count"
+        number: 2
+        label: LABEL_OPTIONAL
+        type: TYPE_INT32
+        oneof_index: 0
+        json_name: "count"
+        proto3_optional: true
+      }
+      oneof_decl {
+        name: "_count"
+      }
+    }
+  }
+  message_type {
+    name: "class"
+    field {
+      name: "value"
+      number: 1
+      label: LABEL_OPTIONAL
+      type: TYPE_STRING
+      json_name: "value"
+    }
+  }
+  syntax: "proto3"
+}
+file {
+  name: "test/v1/echo.proto"
+  package: "test.v1"
+  dependency: "shared/v1/types.proto"
+  service {
+    name: "Echo"
+    method {
+      name: "Say"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.Outer.Nested"
+    }
+    method {
+      name: "class"
+      input_type: ".shared.v1.class"
+      output_type: ".shared.v1.class"
+    }
+    method {
+      name: "class_"
+      input_type: ".shared.v1.class"
+      output_type: ".shared.v1.class"
+    }
+    method {
+      name: "EchoClient"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.Outer.Nested"
+    }
+  }
+  service {
+    name: "Mirror"
+    method {
+      name: "Say"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.Outer.Nested"
+    }
+  }
+  service {
+    name: "Streaming"
+    method {
+      name: "Expand"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.class"
+      server_streaming: true
+    }
+    method {
+      name: "Collect"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.class"
+      client_streaming: true
+    }
+    method {
+      name: "Chat"
+      input_type: ".shared.v1.Outer.Nested"
+      output_type: ".shared.v1.class"
+      client_streaming: true
+      server_streaming: true
+    }
+  }
+  syntax: "proto3"
+}

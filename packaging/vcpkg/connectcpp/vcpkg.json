@@ -1,0 +1,32 @@
+{
+  "name": "connectcpp",
+  "version-semver": "0.1.0",
+  "description": "Experimental C++20 ConnectRPC client and server",
+  "license": "Apache-2.0",
+  "supports": "!uwp",
+  "dependencies": [
+    "abseil",
+    "asio",
+    "llhttp",
+    "nghttp2",
+    "openssl",
+    {
+      "name": "pkgconf",
+      "host": true
+    },
+    "protobuf",
+    {
+      "name": "protobuf",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "zlib"
+  ]
+}

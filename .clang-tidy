@@ -1,0 +1,3 @@
+Checks: '-*,bugprone-*,performance-*,modernize-use-nullptr,google-explicit-constructor'
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/connectrpc/.*'

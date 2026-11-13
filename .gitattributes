@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Parser seeds contain intentional wire bytes, including CRLF and NUL.
+fuzz/corpus/* binary
+
+# Preserve raw measurement artifacts exactly as recorded.
+docs/benchmark-results/*.txt -text
+docs/benchmark-results/*.csv -text

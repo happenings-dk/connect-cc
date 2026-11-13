@@ -1,0 +1,10 @@
+ARG CONNECTCPP_TOOLCHAIN_IMAGE=connectcpp-ci
+FROM ${CONNECTCPP_TOOLCHAIN_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/connectcpp-conan \
+    && /opt/connectcpp-conan/bin/pip install --no-cache-dir conan==2.34.0
+ENV PATH="/opt/connectcpp-conan/bin:${PATH}"
+ENV CONAN_HOME=/workspace/build/.conan-home
+USER 1000:1000

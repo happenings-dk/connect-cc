@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "connectcpp",
+  "version-semver": "0.1.0",
+  "description": "C++20 ConnectRPC client and server",
+  "license": "Apache-2.0",
+  "builtin-baseline": "3d22b64585ca026e881728fd87e541c23a611a43",
+  "dependencies": [
+    "abseil",
+    "asio",
+    "llhttp",
+    "nghttp2",
+    "openssl",
+    {
+      "name": "pkgconf",
+      "host": true
+    },
+    "protobuf",
+    "zlib"
+  ],
+  "default-features": [
+    "tests"
+  ],
+  "features": {
+    "benchmarks": {
+      "description": "Native gRPC C++ baseline for optional RPC benchmarks",
+      "dependencies": [
+        "grpc"
+      ]
+    },
+    "tests": {
+      "description": "GoogleTest for the local test suite",
+      "dependencies": [
+        "gtest",
+        {
+          "name": "openssl",
+          "host": true,
+          "features": [
+            "tools"
+          ]
+        }
+      ]
+    }
+  }
+}

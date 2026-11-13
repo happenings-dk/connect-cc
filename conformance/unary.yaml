@@ -1,0 +1,13 @@
+# HTTP/2 Connect unary POST and eligible GET. Other shapes/protocols/transports
+# have separate profiles; all five profiles form the promised wire matrix.
+features:
+  versions: [HTTP_VERSION_2]
+  protocols: [PROTOCOL_CONNECT]
+  codecs: [CODEC_PROTO, CODEC_JSON]
+  compressions: [COMPRESSION_IDENTITY, COMPRESSION_GZIP]
+  streamTypes: [STREAM_TYPE_UNARY]
+  supportsH2c: true
+  supportsTls: true
+  supportsTlsClientCerts: true
+  supportsConnectGet: true
+  supportsMessageReceiveLimit: true

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package interop.v1;
+import "google/protobuf/wrappers.proto";
+service Echo {
+  rpc Unary(google.protobuf.StringValue) returns (google.protobuf.StringValue);
+}

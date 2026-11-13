@@ -1,0 +1,166 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: linux-gcc, os: ubuntu-24.04, compiler: g++-14, triplet: x64-linux, sanitizer: none}
+          - {name: linux-clang, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux, sanitizer: none}
+          - {name: linux-arm64, os: ubuntu-24.04-arm, compiler: g++-14, triplet: arm64-linux, sanitizer: none}
+          - {name: macos, os: macos-15, compiler: clang++, triplet: arm64-osx, sanitizer: none}
+          - {name: windows, os: windows-2025, compiler: cl, triplet: x64-windows-static-md, sanitizer: none}
+          - {name: asan-ubsan, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux, sanitizer: address}
+          - {name: tsan, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux-tsan, sanitizer: thread}
+    defaults:
+      run:
+        shell: bash
+    env:
+      VCPKG_DISABLE_METRICS: '1'
+      VCPKG_MAX_CONCURRENCY: '3'
+      CTEST_PARALLEL_LEVEL: '3'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: microsoft/vcpkg
+          ref: 3d22b64585ca026e881728fd87e541c23a611a43
+          path: .ci-vcpkg
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.1'
+          cache: true
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        if: runner.os == 'Windows'
+      - name: Linux build tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++-14 clang-18 libclang-rt-18-dev llvm-18 autoconf automake libtool bison gperf nasm
+      - name: Bootstrap pinned package manager
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            .ci-vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          else
+            .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          fi
+      - name: Configure
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+          SANITIZER: ${{ matrix.sanitizer }}
+        run: |
+          flags=()
+          if [[ "$SANITIZER" == address ]]; then
+            flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON)
+          elif [[ "$SANITIZER" == thread ]]; then
+            flags+=(-DCONNECTCPP_THREAD_SANITIZE=ON)
+          fi
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_INSTALL_OPTIONS=--clean-buildtrees-after-build \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCONNECTCPP_BUILD_CONFORMANCE=ON "${flags[@]}"
+      - name: Build and test full protocol matrix
+        run: |
+          cmake --build build --parallel 3
+          ctest --test-dir build --output-on-failure --output-junit results.xml
+          go test -race ./...
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+          test -z "$(gofmt -l cmd internal)"
+      - name: Installed package consumers
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          cmake --install build --prefix "$PWD/install"
+          for example in consumer callbacks headers; do
+            cmake -S "examples/$example" -B "build-$example" -G Ninja \
+              -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+              -DVCPKG_MANIFEST_INSTALL=OFF \
+              -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+              -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+              -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+              -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_PREFIX_PATH="$PWD/install"
+            cmake --build "build-$example" --parallel 3
+            if [[ "$example" == headers ]]; then continue; fi
+            executable="build-$example/$example"
+            if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
+            "$executable"
+          done
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-${{ matrix.name }}
+          path: |
+            build/Testing/Temporary/*.log
+            build/results.xml
+            build/CMakeCache.txt
+            build/CMakeFiles/CMakeConfigureLog.yaml
+          retention-days: 14
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      VCPKG_DISABLE_METRICS: '1'
+      VCPKG_MAX_CONCURRENCY: '3'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: microsoft/vcpkg
+          ref: 3d22b64585ca026e881728fd87e541c23a611a43
+          path: .ci-vcpkg
+      - name: Build fuzz target
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++-14 clang-18 libclang-rt-18-dev llvm-18 autoconf automake libtool bison gperf nasm
+          .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          cmake -S . -B build-fuzz -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_HOST_TRIPLET=x64-linux \
+            -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
+            -DVCPKG_INSTALL_OPTIONS=--clean-buildtrees-after-build \
+            -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF \
+            -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON \
+            -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON
+          cmake --build build-fuzz --parallel 3
+      - name: Fuzz protocol parsers
+        run: |
+          mkdir -p build-fuzz/corpus build-fuzz/artifacts
+          cp fuzz/corpus/* build-fuzz/corpus/
+          build-fuzz/connectcpp_protocol_fuzz build-fuzz/corpus \
+            -max_total_time=120 -max_len=4096 -timeout=10 -rss_limit_mb=1024 \
+            -artifact_prefix=build-fuzz/artifacts/ 2>&1 | tee build-fuzz/fuzz.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: fuzz-evidence
+          path: |
+            build-fuzz/fuzz.log
+            build-fuzz/artifacts/
+            build-fuzz/corpus/
+          retention-days: 14

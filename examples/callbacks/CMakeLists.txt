@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.25)
+project(connectcpp_callbacks LANGUAGES CXX)
+find_package(connectcpp CONFIG REQUIRED)
+add_executable(callbacks main.cc)
+target_link_libraries(callbacks PRIVATE connectcpp::connectcpp)

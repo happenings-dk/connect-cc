@@ -1,0 +1,48 @@
+name: Benchmark harness
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      VCPKG_DISABLE_METRICS: '1'
+      VCPKG_ROOT: ${{ github.workspace }}/.ci-vcpkg
+      REPETITIONS: '1'
+      REQUESTS: '16'
+      WARMUP: '2'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: microsoft/vcpkg
+          ref: 3d22b64585ca026e881728fd87e541c23a611a43
+          path: .ci-vcpkg
+      - name: Build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build g++-14 autoconf automake libtool bison gperf nasm
+          .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
+      - name: Exercise every benchmark pairing
+        run: ci/run-benchmarks.sh "$PWD/build/benchmark-smoke"
+      - name: Retain harness evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: benchmark-smoke
+          path: |
+            build/benchmark-smoke/
+            build-benchmarks/CMakeCache.txt
+            build-benchmarks/CMakeFiles/CMakeConfigureLog.yaml
+          retention-days: 14

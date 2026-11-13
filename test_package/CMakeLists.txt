@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.25)
+project(connectcpp_package_test LANGUAGES CXX)
+find_package(connectcpp CONFIG REQUIRED)
+add_executable(consumer main.cc)
+target_link_libraries(consumer PRIVATE connectcpp::connectcpp)
