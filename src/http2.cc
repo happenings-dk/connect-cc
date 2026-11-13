@@ -103,9 +103,9 @@ struct Http2Session::Impl {
     self.streams.erase(id);
     return 0;
   }
-  static ssize_t Read(nghttp2_session*, int32_t id, uint8_t* buffer,
-                      size_t length, uint32_t* flags, nghttp2_data_source*,
-                      void* data) {
+  static nghttp2_ssize Read(nghttp2_session*, int32_t id, uint8_t* buffer,
+                            size_t length, uint32_t* flags,
+                            nghttp2_data_source*, void* data) {
     auto& self = *static_cast<Impl*>(data);
     auto found = self.streams.find(id);
     if (found == self.streams.end())
@@ -115,7 +115,7 @@ struct Http2Session::Impl {
     std::memcpy(buffer, stream.outgoing.data() + stream.sent, count);
     stream.sent += count;
     if (stream.sent == stream.outgoing.size()) *flags |= NGHTTP2_DATA_FLAG_EOF;
-    return static_cast<ssize_t>(count);
+    return static_cast<nghttp2_ssize>(count);
   }
 };
 namespace {
@@ -202,10 +202,10 @@ Result<int32_t> Http2Session::Request(Metadata metadata, std::string body) {
         {Code::kResourceExhausted, "request exceeds limits", {}});
   }
   auto headers = Headers(metadata);
-  nghttp2_data_provider provider{};
+  nghttp2_data_provider2 provider{};
   provider.read_callback = Impl::Read;
-  int32_t id = nghttp2_submit_request(impl_->session, nullptr, headers.data(),
-                                      headers.size(), &provider, nullptr);
+  int32_t id = nghttp2_submit_request2(impl_->session, nullptr, headers.data(),
+                                       headers.size(), &provider, nullptr);
   if (id < 0) return Result<int32_t>(Http2Error(id));
   impl_->streams[id].outgoing = std::move(body);
   return Result<int32_t>(id);
@@ -220,17 +220,17 @@ Status Http2Session::Respond(int32_t id, Metadata metadata, std::string body) {
     return {Code::kResourceExhausted, "response exceeds limits", {}};
   }
   auto headers = Headers(metadata);
-  nghttp2_data_provider provider{};
+  nghttp2_data_provider2 provider{};
   provider.read_callback = Impl::Read;
-  int code = nghttp2_submit_response(impl_->session, id, headers.data(),
-                                     headers.size(), &provider);
+  int code = nghttp2_submit_response2(impl_->session, id, headers.data(),
+                                      headers.size(), &provider);
   if (code != 0) return Http2Error(code);
   impl_->streams[id].outgoing = std::move(body);
   return {};
 }
 Status Http2Session::Receive(std::string_view bytes) {
   while (!bytes.empty()) {
-    ssize_t count = nghttp2_session_mem_recv(
+    nghttp2_ssize count = nghttp2_session_mem_recv2(
         impl_->session, reinterpret_cast<const uint8_t*>(bytes.data()),
         bytes.size());
     if (count < 0) return Http2Error(static_cast<int>(count));
@@ -244,7 +244,7 @@ Result<std::string> Http2Session::Drain() {
   std::string output;
   const uint8_t* bytes;
   while (output.size() < 65536) {
-    ssize_t count = nghttp2_session_mem_send(impl_->session, &bytes);
+    nghttp2_ssize count = nghttp2_session_mem_send2(impl_->session, &bytes);
     if (count < 0)
       return Result<std::string>(Http2Error(static_cast<int>(count)));
     if (count == 0) break;

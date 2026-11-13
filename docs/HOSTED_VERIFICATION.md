@@ -22,7 +22,7 @@ to that entry count. Test profiles and the pinned suite revision remain in
 | Linux ASan/UBSan | Pass: 222 tests and installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811990) |
 | macOS Apple Clang | Pass after test portability fix: 222 tests and installed consumers | [Corrected job](https://github.com/happenings-dk/connect-cc/actions/runs/43518818289/job/132207625331) |
 | Linux TSan | Initial run: all official profiles passed; interop wrapper timed out during a cold Go build; corrected run pending | [Initial job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812115) |
-| Windows MSVC | In progress; support not yet verified | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812179) |
+| Windows MSVC | Initial build failed on legacy nghttp2 ssize_t declarations; portable API fix under verification | [Initial job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812179) |
 | vcpkg package | Pass: installed examples and 21 public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197810237) |
 | Conan package | Pass: 222 tests, installed examples and public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197809663) |
 | Parser fuzzing | Pass: 2,770,352 inputs in 121 seconds, no finding | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811548) |
@@ -44,6 +44,15 @@ The race-enabled Go helper is now compiled during the CMake build, then executed
 directly by CTest. The RPC assertions and 90-second runtime limit are unchanged.
 Local generator and interoperability checks pass; the corrected hosted TSan
 result must still be recorded.
+
+The initial MSVC build found a genuine portability gap: both HTTP/2 engines used
+nghttp2's deprecated POSIX `ssize_t` APIs. They now use `nghttp2_ssize`,
+`nghttp2_data_provider2` and the corresponding request/response/memory I/O APIs.
+`NGHTTP2_NO_SSIZE_T` disables the old declarations for the library build on all
+platforms, preventing accidental reliance on POSIX types. Both build and package
+configuration require nghttp2 1.61 or newer, where these APIs are available.
+This runtime change requires fresh verification; the initial successful jobs
+above remain historical evidence until the updated checks finish.
 
 Artifacts retain JUnit results, CTest logs and CMake diagnostics for 14 days.
 Downloaded copies and complete job logs are preserved in the development

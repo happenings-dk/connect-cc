@@ -98,9 +98,9 @@ class Http2StreamSession::Impl {
   static int Frame(nghttp2_session*, const nghttp2_frame* frame, void* data);
   static int Sent(nghttp2_session*, const nghttp2_frame* frame, void* data);
   static int Close(nghttp2_session*, int32_t id, uint32_t code, void* data);
-  static ssize_t Read(nghttp2_session*, int32_t id, uint8_t* buffer,
-                      size_t length, uint32_t* flags, nghttp2_data_source*,
-                      void* data);
+  static nghttp2_ssize Read(nghttp2_session*, int32_t id, uint8_t* buffer,
+                            size_t length, uint32_t* flags,
+                            nghttp2_data_source*, void* data);
   void NotifyClosed(int32_t id, Status status);
   Status Resume(int32_t id, Stream& stream);
 
@@ -282,10 +282,10 @@ int Http2StreamSession::Impl::Close(nghttp2_session*, int32_t id, uint32_t code,
   self.NotifyClosed(id, std::move(status));
   return 0;
 }
-ssize_t Http2StreamSession::Impl::Read(nghttp2_session*, int32_t id,
-                                       uint8_t* buffer, size_t length,
-                                       uint32_t* flags, nghttp2_data_source*,
-                                       void* data) {
+nghttp2_ssize Http2StreamSession::Impl::Read(nghttp2_session*, int32_t id,
+                                             uint8_t* buffer, size_t length,
+                                             uint32_t* flags,
+                                             nghttp2_data_source*, void* data) {
   auto& self = *static_cast<Impl*>(data);
   auto found = self.streams_.find(id);
   if (found == self.streams_.end() || found->second.closed)
@@ -321,7 +321,7 @@ ssize_t Http2StreamSession::Impl::Read(nghttp2_session*, int32_t id,
     }
   }
   if (count && self.events_.writable) self.events_.writable(id);
-  return static_cast<ssize_t>(count);
+  return static_cast<nghttp2_ssize>(count);
 }
 Status Http2StreamSession::Impl::Resume(int32_t id, Stream& stream) {
   if (!stream.deferred) return {};
@@ -342,10 +342,10 @@ Result<int32_t> Http2StreamSession::Impl::StartRequest(Metadata metadata) {
   auto bytes = HeaderBytes(metadata, options_.max_metadata_bytes, false);
   if (!bytes.ok()) return Result<int32_t>(bytes.status());
   auto headers = WireHeaders(metadata);
-  nghttp2_data_provider provider{};
+  nghttp2_data_provider2 provider{};
   provider.read_callback = Read;
-  int32_t id = nghttp2_submit_request(session_, nullptr, headers.data(),
-                                      headers.size(), &provider, nullptr);
+  int32_t id = nghttp2_submit_request2(session_, nullptr, headers.data(),
+                                       headers.size(), &provider, nullptr);
   if (id < 0) return Result<int32_t>(LibraryError(id));
   Stream& stream = streams_[id];
   stream.send_started = true;
@@ -363,10 +363,10 @@ Status Http2StreamSession::Impl::StartResponse(int32_t id, Metadata metadata) {
   auto bytes = HeaderBytes(metadata, options_.max_metadata_bytes, false);
   if (!bytes.ok()) return bytes.status();
   auto headers = WireHeaders(metadata);
-  nghttp2_data_provider provider{};
+  nghttp2_data_provider2 provider{};
   provider.read_callback = Read;
-  int code = nghttp2_submit_response(session_, id, headers.data(),
-                                     headers.size(), &provider);
+  int code = nghttp2_submit_response2(session_, id, headers.data(),
+                                      headers.size(), &provider);
   if (code != 0) return LibraryError(code);
   stream.send_started = true;
   stream.sent_metadata = *bytes.value();
@@ -477,7 +477,7 @@ void Http2StreamSession::Impl::Fail(Status status) {
 Status Http2StreamSession::Impl::Receive(std::string_view bytes) {
   if (!failure_.ok()) return failure_;
   while (!bytes.empty()) {
-    ssize_t count = nghttp2_session_mem_recv(
+    nghttp2_ssize count = nghttp2_session_mem_recv2(
         session_, reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size());
     if (count <= 0) {
       Status status =
@@ -508,7 +508,7 @@ Result<std::string> Http2StreamSession::Impl::Drain() {
   std::string result;
   while (result.size() < 65536) {
     const uint8_t* bytes = nullptr;
-    ssize_t count = nghttp2_session_mem_send(session_, &bytes);
+    nghttp2_ssize count = nghttp2_session_mem_send2(session_, &bytes);
     if (count < 0) {
       Status status = LibraryError(static_cast<int>(count));
       Fail(status);

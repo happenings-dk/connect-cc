@@ -64,7 +64,8 @@ respect deadlines and cancellation; stream completion follows final status.
 ## Build
 
 Dependencies: CMake 3.25+, C++20 compiler, Ninja (optional), Google Protobuf with
-its matching C++ runtime, zlib, standalone Asio, OpenSSL 3+, llhttp, pkg-config, nghttp2, and GoogleTest for tests.
+its matching C++ runtime, zlib, standalone Asio, OpenSSL 3+, llhttp, pkg-config,
+nghttp2 1.61+, and GoogleTest for tests.
 
 The [pinned vcpkg baseline](docs/DEPENDENCIES.md) and `ci/run-linux.sh` provide
 reproducible Linux GCC 14/Clang 18 builds. The CI workflow also defines macOS,
