@@ -1,0 +1,9 @@
+[
+  {"name": "linux-gcc", "os": "ubuntu-24.04", "compiler": "g++-14", "triplet": "x64-linux", "sanitizer": "none"},
+  {"name": "linux-clang", "os": "ubuntu-24.04", "compiler": "clang++-18", "triplet": "x64-linux", "sanitizer": "none"},
+  {"name": "linux-arm64", "os": "ubuntu-24.04-arm", "compiler": "g++-14", "triplet": "arm64-linux", "sanitizer": "none"},
+  {"name": "macos", "os": "macos-15", "compiler": "clang++", "triplet": "arm64-osx", "sanitizer": "none"},
+  {"name": "windows", "os": "windows-2025", "compiler": "cl", "triplet": "x64-windows-static-md", "sanitizer": "none"},
+  {"name": "asan-ubsan", "os": "ubuntu-24.04", "compiler": "clang++-18", "triplet": "x64-linux", "sanitizer": "address"},
+  {"name": "tsan", "os": "ubuntu-24.04", "compiler": "clang++-18", "triplet": "x64-linux-tsan", "sanitizer": "thread"}
+]

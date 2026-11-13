@@ -4,27 +4,42 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Compiler lane to verify
+        type: choice
+        default: all
+        options: [all, windows, macos, linux-gcc, linux-clang, linux-arm64, asan-ubsan, tsan]
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: true
 jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      config: ${{ steps.select.outputs.config }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Select compiler lanes
+        id: select
+        env:
+          PLATFORM: ${{ inputs.platform || 'all' }}
+        run: |
+          config=$(jq -ce --arg platform "$PLATFORM" \
+            '{include: [.[] | select($platform == "all" or .name == $platform)]} | select(.include | length > 0)' \
+            .github/ci-matrix.json)
+          echo "config=$config" >> "$GITHUB_OUTPUT"
   verify:
+    needs: matrix
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - {name: linux-gcc, os: ubuntu-24.04, compiler: g++-14, triplet: x64-linux, sanitizer: none}
-          - {name: linux-clang, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux, sanitizer: none}
-          - {name: linux-arm64, os: ubuntu-24.04-arm, compiler: g++-14, triplet: arm64-linux, sanitizer: none}
-          - {name: macos, os: macos-15, compiler: clang++, triplet: arm64-osx, sanitizer: none}
-          - {name: windows, os: windows-2025, compiler: cl, triplet: x64-windows-static-md, sanitizer: none}
-          - {name: asan-ubsan, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux, sanitizer: address}
-          - {name: tsan, os: ubuntu-24.04, compiler: clang++-18, triplet: x64-linux-tsan, sanitizer: thread}
+      matrix: ${{ fromJSON(needs.matrix.outputs.config) }}
     defaults:
       run:
         shell: bash
@@ -137,6 +152,7 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ steps.dependency-cache.outputs.cache-primary-key }}
   fuzz:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     defaults:

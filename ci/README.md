@@ -41,6 +41,12 @@ repository. The Windows lane uses GitHub's hosted MSVC runner, independently of
 the homelab machine. Check completed job results and artifacts before claiming
 platform support.
 
+Manual runs can select one compiler lane without weakening the complete push/PR
+matrix. For example, `gh workflow run ci.yml --repo happenings-dk/connect-cc
+--ref BRANCH -f platform=windows` runs the full Windows test and consumer lane.
+Use `platform=all` for the entire matrix and fuzzing. Different manual lanes
+have separate concurrency groups, so one does not cancel another.
+
 The compiler matrix caches vcpkg binary archives by lane, runner image and
 dependency/toolchain manifests. vcpkg still validates each package's ABI before
 restoring it. Archives are saved even if later project compilation or tests
