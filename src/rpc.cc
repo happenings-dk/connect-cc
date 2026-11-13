@@ -19,6 +19,44 @@
 
 namespace connectrpc {
 namespace {
+struct HttpResult {
+  Status status;
+  HttpMessage message;
+};
+
+// Keep this coroutine separate from the capturing adapter in HandleHttpStream.
+// MSVC 19.51's optimizer crashes on the equivalent nested coroutine lambda.
+asio::awaitable<HttpResult> HandleUnaryHttpBody(
+    const Server* server, std::shared_ptr<ByteStream> transport,
+    HttpMessage request, StreamServerOptions options, UnaryRequest call) {
+  co_await asio::this_coro::throw_if_cancelled(false);
+  for (;;) {
+    auto bytes = co_await transport->Read();
+    if (!bytes.ok()) co_return HttpResult{bytes.status(), {}};
+    if (!*bytes.value()) break;
+    if ((**bytes.value()).size() >
+        options.limits.max_message_bytes - request.body.size())
+      co_return HttpResult{
+          {Code::kResourceExhausted, "request exceeds limit", {}}, {}};
+    request.body.append(**bytes.value());
+  }
+  if (call.deadline != std::chrono::steady_clock::time_point::max()) {
+    auto remaining = std::chrono::ceil<std::chrono::milliseconds>(
+                         call.deadline - std::chrono::steady_clock::now())
+                         .count();
+    if (remaining <= 0)
+      co_return HttpResult{{Code::kDeadlineExceeded, "deadline exceeded", {}},
+                           {}};
+    for (auto& [name, value] : request.headers)
+      if (name == "connect-timeout-ms") value = std::to_string(remaining);
+  }
+  HttpResult result;
+  result.message = co_await server->Handle(
+      std::move(request), options.limits.max_decompressed_bytes,
+      options.send_limits.max_message_bytes);
+  co_return result;
+}
+
 asio::awaitable<Status> WriteFramedRequest(
     std::shared_ptr<ConnectMessageStream> stream, std::string payload) {
   co_await asio::this_coro::throw_if_cancelled(false);
@@ -524,39 +562,11 @@ asio::awaitable<Status> Server::HandleHttpStream(
     response =
         co_await Handle(std::move(request), options.limits.max_message_bytes);
   } else {
-    struct HttpResult {
-      Status status;
-      HttpMessage message;
-    };
     auto invoke =
         [this, transport, request = std::move(request),
          options](UnaryRequest call) mutable -> asio::awaitable<HttpResult> {
-      co_await asio::this_coro::throw_if_cancelled(false);
-      for (;;) {
-        auto bytes = co_await transport->Read();
-        if (!bytes.ok()) co_return HttpResult{bytes.status(), {}};
-        if (!*bytes.value()) break;
-        if ((**bytes.value()).size() >
-            options.limits.max_message_bytes - request.body.size())
-          co_return HttpResult{
-              {Code::kResourceExhausted, "request exceeds limit", {}}, {}};
-        request.body.append(**bytes.value());
-      }
-      if (call.deadline != std::chrono::steady_clock::time_point::max()) {
-        auto remaining = std::chrono::ceil<std::chrono::milliseconds>(
-                             call.deadline - std::chrono::steady_clock::now())
-                             .count();
-        if (remaining <= 0)
-          co_return HttpResult{
-              {Code::kDeadlineExceeded, "deadline exceeded", {}}, {}};
-        for (auto& [name, value] : request.headers)
-          if (name == "connect-timeout-ms") value = std::to_string(remaining);
-      }
-      co_return HttpResult{
-          {},
-          co_await Handle(std::move(request),
-                          options.limits.max_decompressed_bytes,
-                          options.send_limits.max_message_bytes)};
+      return HandleUnaryHttpBody(this, transport, std::move(request), options,
+                                 std::move(call));
     };
     auto [exception, result] = co_await asio::co_spawn(
         asio::make_strand(co_await asio::this_coro::executor),
