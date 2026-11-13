@@ -1,8 +1,9 @@
 # Implementation progress
 
-The end-to-end goal is blocked on Windows/MSVC runner availability. The accepted
-scope remains in PLAN.md; implementation and executed evidence are mapped in
-RELEASE_AUDIT.md. Completion is not claimed.
+The accepted scope remains in PLAN.md; implementation and executed evidence are
+mapped in RELEASE_AUDIT.md. Windows/MSVC verification is now running on GitHub
+Actions in the private happenings-dk/connect-cc repository. Completion is not
+claimed until the required checks pass.
 
 ## Present
 
@@ -155,8 +156,8 @@ RELEASE_AUDIT.md. Completion is not claimed.
 ## Immediate next work
 
 Complete Windows/MSVC verification: build, full CTest suite and independent
-installed consumers. CI definitions are ready; hosted jobs have not been
-executed. The requirement-by-requirement audit is complete in RELEASE_AUDIT.md;
+installed consumers. Hosted verification has started; a running job is not a
+passing result. The requirement-by-requirement audit is complete in RELEASE_AUDIT.md;
 it distinguishes this missing required gate from additional configured lanes.
 
 ## Known limitations
@@ -176,8 +177,9 @@ canceled server reads preserve the response direction for a terminal result.
 Unary client transport body limits currently bound both directions.
 Streaming and server RPC receive and response limits are independent.
 TLS defaults rely on OpenSSL trust paths; native OS trust-store
-integration is not implemented. No Git repository or remote was created; no
-publication occurred.
+integration is not implemented. The source is now in the private
+`happenings-dk/connect-cc` GitHub repository, as authorized by Rasmus. No public
+release, registry submission or upstream endorsement is claimed.
 
 ## Latest verification
 

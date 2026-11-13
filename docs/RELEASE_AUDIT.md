@@ -77,7 +77,7 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 | Relocatable CMake install, vcpkg and Conan recipes | PACKAGE config/export, both native package builds, standard/callback consumers and 21 separately compiled public headers | Pass |
 | Reproducible comparison with gRPC C++ | Optional benchmark target/script, five pairings, repeated raw CSV, toolchain/dependency/source hashes and documented limits | Pass; BENCHMARKS.md records the measured snapshot |
 | No stable ABI promise | DEPENDENCIES.md and PACKAGING.md require rebuilding against matched dependency/compiler versions | Documented |
-| Independent project; no unrequested publication/adoption | No Git repository/remote, registry submission or release publication | Boundary respected |
+| Independent project; no unrequested publication/adoption | Private happenings-dk/connect-cc repository created with explicit user authorization; no registry submission or release publication | Boundary respected |
 
 ## Executed checks and missing gate
 
@@ -92,10 +92,10 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 - Parser fuzzing runs under ASan/UBSan with bounded inputs/output and retained
   corpus/logs. Latest counts and limitations are recorded in FUZZING.md.
 - CI and package/benchmark workflows pass actionlint. Local commands exercise
-  the required runtime matrix above; no hosted GitHub jobs have been run.
-- **Windows/MSVC: missing execution evidence.** SSH to the designated Windows
-  runner timed out again during this audit. No replacement runner is available
-  in the task. Do not declare v1 complete or Windows supported until the
+  the required runtime matrix above; hosted GitHub verification is now running.
+- **Windows/MSVC: awaiting result.** The original Windows runner was unreachable.
+  Rasmus authorized a private GitHub repository and hosted Windows verification;
+  the replacement job has started. Do not declare v1 complete or Windows supported until the
   configured MSVC build, full CTest suite and installed consumers pass.
 
 The Linux arm64 and pinned macOS package-manager lanes in CI are additional

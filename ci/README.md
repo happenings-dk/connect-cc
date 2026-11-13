@@ -35,5 +35,14 @@ seccomp adjustment recorded in [SANITIZERS.md](../docs/SANITIZERS.md). Do not
 change host-wide ASLR settings for these scripts. Keep the complete logs and
 `Testing/Temporary/LastTest.log`; configured jobs alone do not establish a pass.
 
-The GitHub Actions workflow is in `../.github/workflows/ci.yml`. It is prepared
-for a future repository, without creating or publishing a remote repository.
+The GitHub Actions workflow is in `../.github/workflows/ci.yml`, running in the
+private [happenings-dk/connect-cc](https://github.com/happenings-dk/connect-cc)
+repository. The Windows lane uses GitHub's hosted MSVC runner, independently of
+the homelab machine. Check completed job results and artifacts before claiming
+platform support.
+
+The compiler matrix caches vcpkg binary archives by lane, runner image and
+dependency/toolchain manifests. vcpkg still validates each package's ABI before
+restoring it. Archives are saved even if later project compilation or tests
+fail, so correcting source errors does not require another full dependency
+build. Test results and installed consumers always run; they are not cached.

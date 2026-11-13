@@ -186,8 +186,8 @@ TEST(Callback, SeparateExecutorThreadsAndCancellation) {
               EXPECT_EQ(status.code, Code::kCanceled);
               done = true;
             })));
-  std::jthread operation_thread([&] { operations.run(); });
-  std::jthread completion_thread([&] { completions.run(); });
+  std::thread operation_thread([&] { operations.run(); });
+  std::thread completion_thread([&] { completions.run(); });
   started.wait(false);
   signal.emit(asio::cancellation_type::all);
   operation_thread.join();
