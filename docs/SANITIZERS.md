@@ -30,6 +30,20 @@ only addresses message globals, not container annotations. The ASan triplet
 uses the ordinary `x64-linux` host tools and a separate dependency prefix;
 container checks remain enabled. The fuzz configuration uses the same triplet.
 
+OpenSSL 3.6.5's generic C callbacks trigger Clang's function-type UBSan check
+([upstream issue #22896](https://github.com/openssl/openssl/issues/22896)).
+Our first fully instrumented dependency run exited successfully but retained
+these diagnostics in its CTest logs, so it is not clean sanitizer evidence.
+The triplet now applies `-DPEDANTIC -fno-sanitize-recover=all
+-fno-sanitize=function` **only to OpenSSL**, matching the
+[upstream Clang UBSan configuration](https://github.com/openssl/openssl/blob/021b8c18ad1217fe938f96f098e1105a53d6ee12/Configure#L1606-L1611).
+The pinned release's Configure skips supplemental UBSan flags when sanitizer
+flags are supplied externally; these therefore must be set explicitly.
+OpenSSL retains ASan and the other UBSan checks. connect-cc and all other
+dependencies retain function-type checking, and CI makes UBSan reports fatal.
+This documents a dependency coverage limitation rather than claiming those
+OpenSSL callbacks were fixed.
+
 These checks do not replace the remaining platform matrix or parser fuzzing.
 See CONFORMANCE.md for the completed runs and outstanding release gates.
 
