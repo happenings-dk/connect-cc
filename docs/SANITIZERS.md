@@ -1,6 +1,8 @@
 # Sanitizer builds
 
 Use a separate build directory with `CONNECTCPP_SANITIZE=ON` for ASan and UBSan.
+CI and the Linux helper set `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`
+so a UBSan diagnostic fails the check immediately instead of recovering.
 Sanitizer builds default `CONNECTCPP_FETCH_GTEST=ON`: CMake downloads GoogleTest
 1.18.0 with a fixed SHA-256, then builds it with the same compiler, C++20, and
 sanitizer flags as the test binary. Runtime-only builds do not fetch GoogleTest.

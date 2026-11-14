@@ -6,6 +6,7 @@ mkdir -p "$HOME"
 export VCPKG_MAX_CONCURRENCY=4
 export GOCACHE="$PWD/build/go-cache"
 export GOPATH="$PWD/build/.go"
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 flags=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)
 triplet=x64-linux-asan
 build_dir="build-linux-$mode"

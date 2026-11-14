@@ -47,6 +47,7 @@ jobs:
       VCPKG_DISABLE_METRICS: '1'
       VCPKG_MAX_CONCURRENCY: '3'
       CTEST_PARALLEL_LEVEL: '3'
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -225,6 +226,7 @@ jobs:
     env:
       VCPKG_DISABLE_METRICS: '1'
       VCPKG_MAX_CONCURRENCY: '3'
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
