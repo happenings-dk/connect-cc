@@ -2,8 +2,9 @@
 
 `ManagedTransport` connects a base URL to the typed RPC client. It owns DNS
 resolution, TCP connections, TLS context, connection tasks and a bounded pool.
-Your application supplies and runs the Asio executor; the library starts no
-threads. The lower-level `HttpConnection` API remains available for applications
+Your application supplies and runs the Asio executor. Connection work uses that
+executor; Asio's system resolver may use an internal worker for DNS.
+The lower-level `HttpConnection` API remains available for applications
 that already manage sockets.
 
 ```cpp
@@ -38,7 +39,7 @@ Server listeners and handler lifetimes remain application-owned.
 | Setting | Default | Behavior |
 | --- | --- | --- |
 | `max_connections` | 4 | Bounds live/retiring connections and outstanding dials |
-| `connect_timeout` | 10 seconds | Bounds DNS, TCP and TLS together; the call deadline can shorten it |
+| `connect_timeout` | 10 seconds | Cancels DNS, TCP and TLS together at the deadline; the call deadline can shorten it |
 | `idle_timeout` | 60 seconds | Retires a connection after its last stream lease is released |
 | `cleartext_version` | HTTP/2 | Explicit prior knowledge for `http://`; use HTTP/1 for an HTTP/1-only server |
 | `connection.alpn` | HTTP/2 or HTTP/1 | HTTPS negotiates once; h2 is preferred |
@@ -54,6 +55,13 @@ Closed connections are replaced for later calls. **No RPC is retried**, includin
 calls interrupted by connection loss or GOAWAY. A failed call remains failed;
 applications decide whether retrying is safe. Retiring connections temporarily
 count toward the limit until their tasks exit.
+
+Cancellation of system DNS is cooperative: an OS lookup already in progress
+may finish after its deadline. The dial then returns `deadline_exceeded`
+without sending the RPC. `Close` joins that completion, so its wall-clock time
+can also depend on the OS resolver. TCP/TLS operations and connection draining
+are interrupted at their deadlines. A running application executor is required
+for timers and cancellation to make progress.
 
 The URL accepts `http://` and `https://`, an ASCII/punycode hostname or bracketed
 IPv6 address, an optional numeric port, and an optional path prefix. Credentials,

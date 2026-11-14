@@ -285,24 +285,51 @@ TEST(ManagedTransport, CallerCancellationJoinsDialAndDoesNotSendRpc) {
   EXPECT_TRUE(closed);
 }
 TEST(ManagedTransport, DialDeadlineAndCloseDuringTlsHandshake) {
-  for (bool close_during_dial : {false, true}) {
+  for (int scenario = 0; scenario < 3; ++scenario) {
+    SCOPED_TRACE(scenario);
+    bool expired_before_dial = scenario == 0;
+    bool close_during_dial = scenario == 2;
     asio::io_context loop;
     asio::ip::tcp::acceptor listener(loop,
                                      {asio::ip::address_v4::loopback(), 0});
     asio::ip::tcp::socket peer(loop);
     ManagedTransportOptions options;
-    options.connect_timeout = 40ms;
+    options.connect_timeout = 500ms;
     auto created = ManagedTransport::Create(
         loop.get_executor(),
-        "https://localhost:" + std::to_string(listener.local_endpoint().port()),
+        "https://127.0.0.1:" + std::to_string(listener.local_endpoint().port()),
         options);
     ASSERT_TRUE(created.ok());
     auto transport = *created.value();
-    bool finished = false, closed = false;
+    bool finished = false, closed = false, accepted = false;
+    bool handshake_started = false;
+    asio::steady_timer watchdog(loop);
+    watchdog.expires_after(3s);
+    watchdog.async_wait([&](asio::error_code error) {
+      if (!error) {
+        ADD_FAILURE() << "dial cleanup stalled; accepted=" << accepted
+                      << ", finished=" << finished << ", closed=" << closed;
+        asio::error_code ignored;
+        listener.close(ignored);
+        peer.close(ignored);
+      }
+    });
     auto accept = [&]() -> asio::awaitable<void> {
       auto [error] = co_await listener.async_accept(
           peer, asio::as_tuple(asio::use_awaitable));
-      EXPECT_FALSE(error);
+      if (error) {
+        EXPECT_TRUE(expired_before_dial) << error.message();
+        co_return;
+      }
+      accepted = true;
+      char first_byte;
+      auto [read_error, size] = co_await peer.async_read_some(
+          asio::buffer(&first_byte, 1), asio::as_tuple(asio::use_awaitable));
+      EXPECT_FALSE(read_error) << read_error.message();
+      if (read_error) co_return;
+      EXPECT_EQ(size, 1);
+      EXPECT_EQ(static_cast<unsigned char>(first_byte), 0x16);
+      handshake_started = true;
       if (close_during_dial) {
         EXPECT_TRUE(
             (co_await transport->Close(std::chrono::steady_clock::now() + 1s))
@@ -312,7 +339,10 @@ TEST(ManagedTransport, DialDeadlineAndCloseDuringTlsHandshake) {
     };
     auto invoke = [&]() -> asio::awaitable<void> {
       Metadata headers{{":method", "POST"}, {":path", "/test/Say"}};
-      auto stream = co_await transport->Open(std::move(headers));
+      TransportOptions call_options;
+      if (expired_before_dial)
+        call_options.deadline = std::chrono::steady_clock::now();
+      auto stream = co_await transport->Open(std::move(headers), call_options);
       EXPECT_EQ(stream.status().code,
                 close_during_dial ? Code::kCanceled : Code::kDeadlineExceeded)
           << stream.status().message;
@@ -323,6 +353,11 @@ TEST(ManagedTransport, DialDeadlineAndCloseDuringTlsHandshake) {
                 .ok());
         closed = true;
       }
+      // A deadline can expire before TCP reaches the listener. Always join
+      // the fixture's accept instead of leaving io_context::run blocked.
+      asio::error_code ignored;
+      listener.close(ignored);
+      watchdog.cancel();
     };
     asio::co_spawn(loop, accept(),
                    [](auto exception) { EXPECT_FALSE(exception); });
@@ -331,6 +366,8 @@ TEST(ManagedTransport, DialDeadlineAndCloseDuringTlsHandshake) {
     loop.run();
     EXPECT_TRUE(finished);
     EXPECT_TRUE(closed);
+    EXPECT_EQ(accepted, !expired_before_dial);
+    EXPECT_EQ(handshake_started, !expired_before_dial);
   }
 }
 }  // namespace

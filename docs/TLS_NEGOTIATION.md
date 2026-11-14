@@ -115,7 +115,8 @@ paths everywhere. Supplying `trust_file` or `trust_pem` replaces system trust
 with that explicit OpenSSL CA configuration; it does not augment native roots.
 Reconfiguring a context replaces its prior trust store. Configure contexts before
 creating streams; do not change a context while it is in use by connections.
-Hostname/IP verification, certificate purpose and ALPN remain mandatory.
+Hostname/IP and certificate-purpose checks remain enforced, along with the
+selected ALPN policy.
 
 Native verification uses local stores and cached chain/revocation information.
 It does not perform AIA/OCSP network fetches on the handshake executor. Known
