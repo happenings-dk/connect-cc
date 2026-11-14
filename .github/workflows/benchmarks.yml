@@ -44,6 +44,7 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-benchmark-v1-${{ steps.cache-environment.outputs.image }}-${{ hashFiles('vcpkg.json', 'ci/triplets/**', 'ci/run-benchmarks.sh') }}
           restore-keys: |
+            vcpkg-benchmark-v1-${{ steps.cache-environment.outputs.image }}-
             vcpkg-v1-linux-gcc-${{ steps.cache-environment.outputs.image }}-
       - name: Build tools
         run: |
