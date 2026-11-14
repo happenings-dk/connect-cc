@@ -84,6 +84,12 @@ Status ConfigureTlsContext(asio::ssl::context& context, bool server,
     return {Code::kInternal, "cannot set TLS minimum version", {}};
   }
   asio::error_code error;
+  // Loading roots into an existing OpenSSL store is additive. A new policy
+  // must not retain roots accepted by a previous ConfigureTlsContext call.
+  X509_STORE* roots = X509_STORE_new();
+  if (!roots)
+    return {Code::kInternal, "cannot create TLS trust store", {}};
+  SSL_CTX_set_cert_store(context.native_handle(), roots);  // Takes ownership.
   SSL_CTX_set_cert_verify_callback(context.native_handle(), nullptr, nullptr);
   bool native = options.trust_file.empty() && options.trust_pem.empty() &&
                 options.trust == TlsTrust::kSystem &&

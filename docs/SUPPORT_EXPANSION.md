@@ -30,10 +30,10 @@ Editions calls, Lite-only linkage and installed consumption, streaming and
 pool admission over both HTTP versions/TLS, idle replacement, handshake
 shutdown/deadlines, and cooperative/uncooperative TLS shutdown.
 
-The expanded local full run passes 235 CTest entries including all ten
+The expanded local full run passes 236 CTest entries including all ten
 conformance profiles. Thirteen Lite tests and the installed Lite consumer pass;
 the macOS native trust probe against `https://connectrpc.com` passes. ASan/UBSan
-passes 234 entries plus the new caller-cancellation regression. The README
+passes the same 236 entries, including caller cancellation and trust replacement. The README
 managed example compiles and runs against the installed package.
 
 Hosted Linux GCC/Clang/ARM64, macOS and TSan pass the expansion. Windows header

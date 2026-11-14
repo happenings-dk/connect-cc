@@ -26,8 +26,7 @@ See the [documentation index](README.md) for API and protocol guides.
 ## Verification and remaining work
 
 The pinned official matrix contains 4,822 client and 3,876 server cases across
-ten CTest profiles. The expanded local macOS suite passes **235/235**. ASan/UBSan
-passes 234/234 plus the additional caller-cancellation regression. A separate Lite build passes
+ten CTest profiles. The expanded local macOS suite passes **236/236** in both normal and ASan/UBSan builds. A separate Lite build passes
 its generated-binding/transport tests and an installed consumer without linking
 full Protobuf. The native macOS system-trust HTTPS probe passes.
 

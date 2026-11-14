@@ -113,6 +113,8 @@ framework policy or Windows certificate-chain/SSL policy. Other platforms use
 OpenSSL's default trust paths. `TlsTrust::kOpenSsl` explicitly selects OpenSSL
 paths everywhere. Supplying `trust_file` or `trust_pem` replaces system trust
 with that explicit OpenSSL CA configuration; it does not augment native roots.
+Reconfiguring a context replaces its prior trust store. Configure contexts before
+creating streams; do not change a context while it is in use by connections.
 Hostname/IP verification, certificate purpose and ALPN remain mandatory.
 
 Native verification uses local stores and cached chain/revocation information.

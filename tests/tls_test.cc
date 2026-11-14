@@ -132,6 +132,7 @@ struct TlsCase {
   bool client_identity;
   bool success;
   bool alpn = true;
+  bool replace_trust = false;
 };
 class TlsTest : public testing::TestWithParam<TlsCase> {};
 TEST_P(TlsTest, VerifiedUnary) {
@@ -149,6 +150,12 @@ TEST_P(TlsTest, VerifiedUnary) {
     SSL_CTX_set_alpn_select_cb(server_context.native_handle(), nullptr,
                                nullptr);
   TlsOptions client_options;
+  if (test.replace_trust) {
+    TlsOptions previous;
+    previous.trust_file = CONNECTCPP_TEST_CERT;
+    ASSERT_TRUE(ConfigureTlsContext(client_context, false, previous).ok());
+    client_options.trust = TlsTrust::kOpenSsl;
+  }
   if (test.trust_server) client_options.trust_file = CONNECTCPP_TEST_CERT;
   if (test.client_identity) {
     client_options.certificate_file = CONNECTCPP_TEST_CERT;
@@ -300,6 +307,8 @@ INSTANTIATE_TEST_SUITE_P(
                     TlsCase{"localhost", false, false, false, false},
                     TlsCase{"localhost", true, true, false, false},
                     TlsCase{"localhost", true, true, true, true},
-                    TlsCase{"localhost", true, false, false, false, false}));
+                    TlsCase{"localhost", true, false, false, false, false},
+                    TlsCase{"localhost", false, false, false, false, true,
+                            true}));
 }  // namespace
 }  // namespace connectrpc
