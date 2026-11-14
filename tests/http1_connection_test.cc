@@ -143,6 +143,10 @@ TEST_P(Http1ConnectionTest,
       EXPECT_TRUE(request_body.ok());
       HttpMessage response;
       response.headers = {{":status", "200"}, {"batch", "yes"}};
+      // The final backpressured response must survive connection closure,
+      // including its last body chunk and trailers on Winsock.
+      if (size == 256 * 1024)
+        response.headers.emplace_back("connection", "close");
       response.body = std::string(size, 'r');
       Metadata trailers{{"complete", "yes"}};
       auto operation =
@@ -157,7 +161,9 @@ TEST_P(Http1ConnectionTest,
   auto invoke = [&]() -> asio::awaitable<void> {
     for (size_t size : {size_t{0}, size_t{58}, size_t{256 * 1024}}) {
       response_queued = false;
-      auto opened = co_await client_->Open(H1Request());
+      auto request = H1Request();
+      if (size == 256 * 1024) request.emplace_back("connection", "close");
+      auto opened = co_await client_->Open(std::move(request));
       EXPECT_TRUE(opened.ok());
       if (!opened.ok()) co_return;
       auto stream = *opened.value();

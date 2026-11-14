@@ -324,6 +324,9 @@ void Http2Connection::Impl::Stop(Status status) {
   outcome_ = status;
   shutdown_timer_.cancel();
   asio::error_code ignored;
+  // Preserve completed writes when close cancels the outstanding reader,
+  // including Winsock's overlapped receive operation.
+  Lowest().shutdown(asio::ip::tcp::socket::shutdown_send, ignored);
   Lowest().close(ignored);
   session_->Fail(status.ok()
                      ? Status{Code::kUnavailable, "connection closed", {}}

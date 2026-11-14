@@ -256,6 +256,9 @@ void Http1Connection::Impl::Stop(Status status) {
   outcome_ = status;
   shutdown_timer_.cancel();
   asio::error_code ignored;
+  // Announce TCP EOF before close cancels outstanding overlapped I/O. On
+  // Windows, closing directly can reset a completed response at the peer.
+  Lowest().shutdown(asio::ip::tcp::socket::shutdown_send, ignored);
   Lowest().close(ignored);
   if (call_) {
     call_->timer.cancel();

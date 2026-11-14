@@ -99,6 +99,8 @@ struct ServerConnection {
     stopping = true;
     failure = std::move(status);
     asio::error_code ignored;
+    socket.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_send,
+                                   ignored);
     socket.lowest_layer().close(ignored);
     wake.close();
     for (const auto& [id, signal] : calls)
