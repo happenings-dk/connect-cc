@@ -58,6 +58,9 @@ TEST_P(ManagedConnectionTest, ReuseIdleExpiryAndJoinedShutdown) {
   options.cleartext_version = version;
   options.connection.alpn = tls.alpn;
   options.tls.trust_file = CONNECTCPP_TEST_CERT;
+  // A very long configured timeout must saturate instead of wrapping into the
+  // past when converted to the steady clock's finer duration.
+  options.connect_timeout = (std::chrono::milliseconds::max)();
   options.idle_timeout = 40ms;
   options.max_connections = 1;
   auto created = ManagedTransport::Create(

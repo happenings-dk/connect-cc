@@ -21,6 +21,12 @@ namespace {
 using Time = std::chrono::steady_clock::time_point;
 using Opened = Result<std::shared_ptr<ByteStream>>;
 using Connected = Result<std::shared_ptr<HttpConnection>>;
+Time DeadlineAfter(std::chrono::milliseconds delay) {
+  auto now = std::chrono::steady_clock::now();
+  auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+      (Time::max)() - now);
+  return delay >= remaining ? (Time::max)() : now + delay;
+}
 Status Closed() { return {Code::kUnavailable, "managed transport closed", {}}; }
 Status Canceled() { return {Code::kCanceled, "operation canceled", {}}; }
 Status Expired() {
@@ -256,6 +262,9 @@ class ManagedTransport::Impl : public std::enable_shared_from_this<Impl> {
     auto [error, endpoints] = co_await attempt->resolver.async_resolve(
         origin_.host, origin_.port, asio::as_tuple(asio::use_awaitable));
     if (error) co_return Connected(IoError(error));
+    // A resolver result may already be queued when cancellation is delivered.
+    // Do not let async_connect reopen the canceled attempt's closed socket.
+    if (attempt->canceled) co_return Connected(Canceled());
     auto [connected, endpoint] = co_await asio::async_connect(
         attempt->socket, endpoints, asio::as_tuple(asio::use_awaitable));
     (void)endpoint;
@@ -328,8 +337,7 @@ class ManagedTransport::Impl : public std::enable_shared_from_this<Impl> {
       auto attempt = std::make_shared<Attempt>(strand_);
       attempts_.push_back(attempt);
       Time deadline =
-          std::min(options.deadline,
-                   std::chrono::steady_clock::now() + options_.connect_timeout);
+          std::min(options.deadline, DeadlineAfter(options_.connect_timeout));
       attempt->timer.expires_at(deadline);
       attempt->timer.async_wait(
           [weak = std::weak_ptr(attempt)](asio::error_code error) {
@@ -395,7 +403,7 @@ class ManagedTransport::Impl : public std::enable_shared_from_this<Impl> {
   void Release(const std::shared_ptr<Entry>& entry) {
     --entry->active;
     if (entry->active == 0 && !entry->done && !entry->closing && !stopping_) {
-      entry->idle.expires_after(options_.idle_timeout);
+      entry->idle.expires_at(DeadlineAfter(options_.idle_timeout));
       entry->idle.async_wait(
           [self = shared_from_this(), entry](asio::error_code error) {
             if (!error && entry->active == 0)
