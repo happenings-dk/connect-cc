@@ -88,6 +88,12 @@ jobs:
           else
             .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
           fi
+      - name: Go tool checks
+        run: |
+          go test -race ./...
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+          test -z "$(gofmt -l cmd internal)"
       - name: Configure
         id: configure
         env:
@@ -113,10 +119,6 @@ jobs:
         run: |
           cmake --build build --parallel 3
           ctest --test-dir build --output-on-failure --output-junit results.xml
-          go test -race ./...
-          go vet ./...
-          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-          test -z "$(gofmt -l cmd internal)"
       - name: Installed package consumers
         env:
           COMPILER: ${{ matrix.compiler }}
@@ -138,6 +140,24 @@ jobs:
             if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
             "$executable"
           done
+      - name: SDK setup and independent generated project
+        if: matrix.sanitizer == 'none'
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          go run ./cmd/connectcpp setup --source . --prefix "$PWD/sdk install" \
+            --cmake-arg "-DCMAKE_TOOLCHAIN_FILE=$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            --cmake-arg "-DVCPKG_OVERLAY_TRIPLETS=$PWD/ci/triplets" \
+            --cmake-arg "-DVCPKG_TARGET_TRIPLET=$TRIPLET" \
+            --cmake-arg "-DVCPKG_HOST_TRIPLET=$TRIPLET" \
+            --cmake-arg "-DVCPKG_INSTALLED_DIR=$PWD/vcpkg_installed" \
+            --cmake-arg=-DVCPKG_MANIFEST_INSTALL=OFF \
+            --cmake-arg "-DCMAKE_CXX_COMPILER=$COMPILER"
+          cli="$PWD/sdk install/bin/connectcpp"
+          if [[ "$RUNNER_OS" == Windows ]]; then cli+='.exe'; fi
+          cmake -DCLI="$cli" -DPREFIX="$PWD/sdk install" \
+            -DWORK="$PWD/build/sdk-test" -P ci/test-sdk.cmake
       - name: Lite-only runtime and installed consumer
         env:
           COMPILER: ${{ matrix.compiler }}
@@ -178,6 +198,21 @@ jobs:
               exit 1
             fi
           fi
+      - name: Generated Lite project
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          go run ./cmd/connectcpp new build-lite-generated
+          cmake -S build-lite-generated -B build-lite-generated/build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install-lite"
+          cmake --build build-lite-generated/build --parallel 3
+          ctest --test-dir build-lite-generated/build --output-on-failure
       - name: Native system trust online probe
         if: matrix.sanitizer == 'none'
         env:

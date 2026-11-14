@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.25)
+project(@PROJECT_NAME@ LANGUAGES CXX)
+find_package(connectcpp CONFIG REQUIRED)
+connectcpp_generate(TARGET greet_proto PROTO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/proto"
+  SERVICES greet/v1/greet.proto)
+add_executable(greeter src/main.cc)
+target_link_libraries(greeter PRIVATE greet_proto)
+set_target_properties(greeter PROPERTIES CXX_EXTENSIONS OFF)
+include(CTest)
+add_test(NAME Greeting.RoundTrip COMMAND greeter self-test)
+set_tests_properties(Greeting.RoundTrip PROPERTIES TIMEOUT 15)

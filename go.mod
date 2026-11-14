@@ -1,4 +1,4 @@
-module connectcpp.local/connect-cc
+module github.com/happenings-dk/connect-cc
 
 go 1.26.0
 

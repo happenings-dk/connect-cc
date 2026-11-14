@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
 
-	"connectcpp.local/connect-cc/internal/codegen"
+	"github.com/happenings-dk/connect-cc/internal/codegen"
 )
 
 func main() {
