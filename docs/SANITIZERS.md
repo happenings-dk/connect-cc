@@ -44,8 +44,11 @@ dependencies retain function-type checking, and CI makes UBSan reports fatal.
 This documents a dependency coverage limitation rather than claiming those
 OpenSSL callbacks were fixed.
 
-These checks do not replace the remaining platform matrix or parser fuzzing.
-See CONFORMANCE.md for the completed runs and outstanding release gates.
+The [corrected focused run](https://github.com/happenings-dk/connect-cc/actions/runs/43582572342)
+at `77e0e72` passes 236 full tests, 13 Lite tests and installed consumers with
+fatal UBSan. Both retained CTest logs contain zero sanitizer diagnostics.
+These checks complement the compiler matrix and parser fuzzing;
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records final-revision evidence.
 
 ## ThreadSanitizer
 
@@ -58,8 +61,9 @@ layouts relative to its ordinary prebuilt runtime. Mixing them produced invalid
 access reports in a standalone Protobuf-only JSON/Value example, independent
 of this library. No suppression or disabled TSan check is used to mask that
 mismatch. The local reproducer is `build/protobuf-tsan-repro/`.
-The same reproducer passes against the rebuilt dependency stack; the complete
-Linux TSan suite then passes 222/222 tests, including all official profiles.
+The same reproducer passes against the rebuilt dependency stack. The expanded
+Linux TSan suite passes 236/236 full tests, including all official profiles,
+and 13/13 Lite tests; the hosted report records the tested revision.
 The custom compiler toolchain explicitly includes vcpkg's Linux toolchain so
 the triplet's instrumentation flags reach dependencies. Merely selecting a
 different triplet name without forwarding those flags does not instrument them.

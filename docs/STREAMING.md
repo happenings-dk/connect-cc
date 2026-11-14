@@ -151,7 +151,7 @@ single-limit factory overload applies that limit to both directions. A
 client-streaming response is provisional until `Finish` confirms success.
 Callback completion and HTTP/1.1 are integrated; see CALLBACKS.md and HTTP1.md.
 [Hosted verification](HOSTED_VERIFICATION.md) records platform results and
-remaining release gates.
+verification boundaries.
 
 ## Connection and stream ownership
 

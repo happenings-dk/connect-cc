@@ -16,13 +16,13 @@ new capabilities require their own tests and installed-package verification.
 - [x] Protobuf Lite: MessageLite binary codecs and generated services, standalone
   lite-only link, bounded protocol JSON without full-runtime reflection,
   explicit application-JSON capability handling and package/CI configurations.
-- [ ] Documentation/examples and final compiler, sanitizer, conformance and
+- [x] Documentation/examples and final compiler, sanitizer, conformance and
   installed-package checks on Linux, macOS and Windows.
 
 Work is in the primary checkout; no task worktree was created.
 [PR #1](https://github.com/happenings-dk/connect-cc/pull/1) contains the expansion.
 
-## Implementation checkpoint
+## Completed verification
 
 Editions 2023–2024, full/Lite codec overloads and a Lite-only CMake target,
 bounded protocol JSON, native macOS/Windows trust policy, coordinated TLS
@@ -37,10 +37,11 @@ the macOS native trust probe against `https://connectrpc.com` passes. ASan/UBSan
 passes the same 236 entries, including caller cancellation and trust replacement. The README
 managed example compiles and runs against the installed package.
 
-Hosted Linux GCC/Clang/ARM64, macOS, Windows and TSan pass the expansion
-baseline, as do full/Lite packages and parser fuzzing. Final verification adds
-fatal UBSan, OpenSSL's upstream dependency-specific sanitizer configuration,
-deadline saturation and a post-DNS cancellation guard. The last checkbox remains
-open until that hosted matrix finishes. System DNS cancellation remains
+The final hosted matrix passes on Linux GCC/Clang/ARM64, macOS and Windows,
+plus ASan/UBSan and TSan: 236 full and 13 Lite tests per lane, with independent
+installed consumers. The full/Lite vcpkg and Conan packages, parser fuzzing and
+benchmark correctness checks also pass. Final verification includes fatal UBSan,
+OpenSSL's documented dependency-specific sanitizer configuration, deadline
+saturation and the post-DNS cancellation guard. System DNS cancellation remains
 cooperative; see [MANAGED_TRANSPORT.md](MANAGED_TRANSPORT.md).
 [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact source revisions.

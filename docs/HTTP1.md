@@ -137,7 +137,7 @@ The codec/TLS analysis is clean, but the connection scan is not reported as clea
 The complete normal and sanitizer lifecycle tests pass.
 
 [Callbacks](CALLBACKS.md) and [interceptors](INTERCEPTORS.md) use the same
-HTTP/1.1 transport. Exact platform results and remaining release gates are in
+HTTP/1.1 transport. Exact platform results and verification boundaries are in
 [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md); these checks do not constitute
 upstream endorsement.
 

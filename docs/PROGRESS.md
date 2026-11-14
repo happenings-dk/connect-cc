@@ -23,17 +23,21 @@ evidence. The repository is hosted privately at
 
 See the [documentation index](README.md) for API and protocol guides.
 
-## Verification and remaining work
+## Verification and release status
 
 The pinned official matrix contains 4,822 client and 3,876 server cases across
-ten CTest profiles. The expanded local macOS suite passes **236/236** in both normal and ASan/UBSan builds. A separate Lite build passes
-its generated-binding/transport tests and an installed consumer without linking
-full Protobuf. The native macOS system-trust HTTPS probe passes.
+ten CTest profiles. The expanded suite passes **236/236** full tests and
+**13/13** Lite tests on Linux GCC/Clang/ARM64, macOS, Windows, ASan/UBSan and
+TSan. Installed consumers and all 22 public headers compile independently;
+Lite consumers link without full Protobuf. Native trust probes pass on the
+five ordinary compiler/platform lanes.
 
-Hosted verification of the support expansion is in progress, including a strict
-Linux sanitizer rerun after correcting OpenSSL's dependency instrumentation.
-[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact runs;
-prior platform results are historical, not evidence for untested new changes.
+The support expansion is complete. Full/Lite vcpkg and Conan packages pass;
+the final fuzz campaign processes 4,463,161 inputs without a finding, and the
+benchmark correctness smoke passes all five pairings with zero errors.
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact revisions,
+retained logs, earlier failures and their corrections. Sanitizer configuration
+and its OpenSSL-only boundary are documented in [SANITIZERS.md](SANITIZERS.md).
 Public release, registry publication and upstream adoption remain separate
 steps. No official certification or maintainer endorsement is claimed.
 

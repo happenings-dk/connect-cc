@@ -7,10 +7,36 @@ executed results from pending checks and records the source used for each.
 
 ## Support expansion verification
 
-The final runtime revision is `d7d93b4`. It adds the deadline saturation and
-post-DNS cancellation guard described below. Local full, fatal-UBSan and Lite
-checks pass; its final hosted matrix is pending. The baseline evidence below
-must not be read as a hosted pass for those last runtime changes.
+The final runtime revision is `d7d93b4`; hosted verification uses
+`be8d32e464f3f9c0261a9827335e726e10c2785f`, with identical runtime and test sources.
+It includes deadline saturation, the post-DNS cancellation guard, and fatal UBSan
+with the documented OpenSSL-only configuration in [SANITIZERS.md](SANITIZERS.md).
+
+| Final hosted lane | Result | Evidence |
+| --- | --- | --- |
+| Linux GCC x86-64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539318) |
+| Linux Clang x86-64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539329) |
+| Linux GCC ARM64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539317) |
+| macOS Apple Clang | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539307) |
+| Windows MSVC | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539292) |
+| Linux TSan | Pass: 236 full, 13 Lite and consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539326) |
+| Linux ASan/UBSan | Pass: 236 full, 13 Lite and consumers; fatal UBSan | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539323) |
+
+Retained JUnit reports for all seven compiler lanes show zero failures,
+disabled tests or skipped tests. Their fourteen full/Lite CTest logs contain no
+sanitizer diagnostics. The complete conformance profiles remain included.
+
+- [Final vcpkg and Conan packages](https://github.com/happenings-dk/connect-cc/actions/runs/43583664570):
+  both pass full and Lite consumption. Conan also passes the complete 236-entry
+  protocol suite. Verified binary archives were saved for subsequent runs.
+- [Final benchmark correctness smoke](https://github.com/happenings-dk/connect-cc/actions/runs/43583664552):
+  all five pairings pass across 30 scenarios and 480 measured RPCs, with zero errors.
+  This is a correctness smoke run, not a replacement performance dataset.
+- [Final parser fuzzing](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413507215):
+  **4,463,161 inputs in 121 seconds**, with fatal UBSan and instrumented
+  dependencies. The retained log contains no sanitizer diagnostic or finding.
+
+### Expansion baseline and investigation history
 
 The expansion baseline is `8a6078a9cbca881bd9d81d1066453e12527f54c7`.
 It adds Editions 2023–2024, Protobuf Lite, managed connections, native trust,

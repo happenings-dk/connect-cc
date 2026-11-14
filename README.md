@@ -19,7 +19,7 @@ both coroutine operations and callback completion.
 not an official ConnectRPC project. APIs may change. The pinned official
 conformance profiles pass 8,698 cases on Linux, macOS and Windows MSVC.
 See the [verification report](docs/HOSTED_VERIFICATION.md)
-for exact revisions, results and remaining release gates.
+for exact revisions, results and verification limits.
 
 [Getting started](docs/GETTING_STARTED.md) · [Documentation](docs/README.md) ·
 [Examples](examples/README.md) · [Contributing](CONTRIBUTING.md)

@@ -43,6 +43,12 @@ CONFORMANCE.md tracks executed verification, distinct from configured jobs.
 
 ## Recorded verification
 
+The [support-expansion campaign](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413507215)
+at `be8d32e` completed **4,463,161 inputs in 121 seconds** with fatal UBSan and
+ASan/UBSan-instrumented target dependencies. Its retained log has no sanitizer
+diagnostics or findings. The OpenSSL-only instrumentation boundary is documented
+in [SANITIZERS.md](SANITIZERS.md).
+
 At runtime revision `72d2739`, Linux Clang 18 with ASan/UBSan completed
 **7,099,792 inputs in 121 seconds** without a finding. The task used a two-CPU,
 8-GiB container and the evolved corpus plus all checked-in seeds. Logs are

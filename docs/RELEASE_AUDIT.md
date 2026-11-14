@@ -12,7 +12,7 @@ Compiler, conformance and installed-package results are recorded by revision.
 The source is hosted privately under happenings-dk. Public release, registry
 publication and upstream adoption remain separate work.
 
-This audit covers the implemented scope and records outstanding verification.
+This audit covers the implemented scope and records verification boundaries.
 [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) is the source of truth for
 executed checks and exact revisions, including the verified Windows shutdown fix.
 The initial-scope suite had 222 CTest entries. The unchanged official matrix comprises
@@ -109,8 +109,8 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 Hosted Linux arm64 and the pinned macOS dependency stack now also pass all 222
 tests and installed consumers. The macOS runner required a test-only thread
 portability fix. [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records the
-exact jobs, revisions, original failure and corrected result. Other pending
-jobs remain explicitly unverified; results do not imply every possible
+exact jobs, revisions, original failure and corrected result. Results apply
+to the recorded source and do not imply every possible
 platform/architecture combination.
 
 Applications own listener lifetime, executor threads and cooperative handler
