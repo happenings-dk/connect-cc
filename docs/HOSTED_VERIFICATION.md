@@ -51,7 +51,7 @@ The latest PR state is available on [PR #1](https://github.com/happenings-dk/con
   diagnostics above do not appear in the parser-only campaign. The final rerun
   additionally makes any UBSan diagnostic fatal.
 - The [benchmark correctness smoke run at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682139)
-  is running. The measured performance dataset below remains explicitly tied
+  passes. The measured performance dataset below remains explicitly tied
   to its earlier runtime revision.
 
 The following sections preserve the original acceptance evidence. Their
