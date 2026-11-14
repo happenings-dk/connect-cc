@@ -86,7 +86,7 @@ until they join. Connection loss cancels all handlers; parent cancellation
 closes the connection and joins handlers and I/O, including during a graceful
 drain. Calling `connection->Shutdown(deadline)` stops admission and drains the
 serving loop. Applications still own the TCP listener and must join the serving
-operation; a public server acceptor remains pending.
+operation and implement their listener accept loop.
 
 ## Connect message streams
 
@@ -105,7 +105,7 @@ size, and terminal metadata (including the JSON record). Defaults are 4 MiB,
 payloads and bounds decompression, including compressed terminal records.
 
 `ConnectMessageStream` uses the `ByteStream` transport interface, currently
-implemented by `Http2ByteStream`. Its client factory takes an already-opened
+implemented by both `Http2ByteStream` and `Http1ByteStream`. Its client factory takes an already-opened
 HTTP request stream and its `StreamingRequest` settings. Encode the headers
 with `EncodeStreamingRequest`, add `:scheme` and `:authority` **before regular
 headers**, and pass the deadline to `Http2Connection::Open`. The server factory
@@ -150,7 +150,8 @@ Factory overloads accept separate receive and send `StreamLimits`. The older
 single-limit factory overload applies that limit to both directions. A
 client-streaming response is provisional until `Finish` confirms success.
 Callback completion and HTTP/1.1 are integrated; see CALLBACKS.md and HTTP1.md.
-Other release gates remain pending in PLAN.md.
+[Hosted verification](HOSTED_VERIFICATION.md) records platform results and
+remaining release gates.
 
 ## Connection and stream ownership
 
@@ -210,8 +211,8 @@ the socket. At its deadline it fails remaining calls and closes the connection.
 Client GOAWAY is deferred until queued calls finish, so shutdown cannot discard
 request headers that have not yet been transmitted. `Run()` joins its writer
 before returning. Application RPC handler tasks are outside this raw transport
-and must also be joined by their owner or `ServeHttp2Connection`. TLS close-notify
-and full server acceptor shutdown remain pending.
+and must also be joined by their owner or `ServeHttp2Connection`. Applications
+own listener shutdown. A public TLS close-notify convenience is not implemented.
 
 ## Bounds and flow control
 

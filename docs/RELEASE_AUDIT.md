@@ -3,11 +3,14 @@
 The accepted objective is [PLAN.md](PLAN.md), including client and server,
 all four RPC shapes, the three protocols, HTTP/1.1 and HTTP/2, and the specified
 platform/toolchain gates. The runtime and deliverables below have evidence.
-**The full objective is not complete: Windows/MSVC execution is still missing.**
-Configured Windows CI is not a substitute for a successful Windows build/run.
-Upstream adoption and publishing a repository or release remain separate work.
+**The required platform families now have passing runtime and installed-package evidence.**
+Compiler, conformance and installed-package results are recorded by revision.
+The source is hosted privately under happenings-dk. Public release, registry
+publication and upstream adoption remain separate work.
 
-This audit follows the final compression-preference change on 13 November 2026.
+This audit covers the implemented scope and records outstanding verification.
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) is the source of truth for
+executed checks and exact revisions, including the verified Windows shutdown fix.
 The current suite has 222 CTest entries. The unchanged official matrix comprises
 8,698 client/server cases; the additional local tests are not represented as
 extra official cases. Exact profiles and suite revision are in CONFORMANCE.md.
@@ -77,9 +80,9 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 | Relocatable CMake install, vcpkg and Conan recipes | PACKAGE config/export, both native package builds, standard/callback consumers and 21 separately compiled public headers | Pass |
 | Reproducible comparison with gRPC C++ | Optional benchmark target/script, five pairings, repeated raw CSV, toolchain/dependency/source hashes and documented limits | Pass; BENCHMARKS.md records the measured snapshot |
 | No stable ABI promise | DEPENDENCIES.md and PACKAGING.md require rebuilding against matched dependency/compiler versions | Documented |
-| Independent project; no unrequested publication/adoption | Private happenings-dk/connect-cc repository created with explicit user authorization; no registry submission or release publication | Boundary respected |
+| Independent distribution status | Private happenings-dk/connect-cc repository; no public registry package, release or official ConnectRPC affiliation | Pre-release |
 
-## Executed checks and missing gate
+## Executed checks
 
 - macOS arm64 Apple Clang: 222/222 normal and ASan/UBSan.
 - Linux x86-64 GCC 14.2 and Clang 18: 222/222 each.
@@ -92,11 +95,12 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 - Parser fuzzing runs under ASan/UBSan with bounded inputs/output and retained
   corpus/logs. Latest counts and limitations are recorded in FUZZING.md.
 - CI and package/benchmark workflows pass actionlint. Local commands exercise
-  the required runtime matrix above; hosted GitHub verification is now running.
-- **Windows/MSVC: awaiting result.** The original Windows runner was unreachable.
-  Rasmus authorized a private GitHub repository and hosted Windows verification;
-  the replacement job has started. Do not declare v1 complete or Windows supported until the
-  configured MSVC build, full CTest suite and installed consumers pass.
+  the required runtime matrix above; hosted results are linked in the verification report.
+- **Windows/MSVC: pass.** The [hosted Release run](https://github.com/happenings-dk/connect-cc/actions/runs/43532212334)
+  at `72d2739` passes the complete CTest suite, Go checks and installed
+  consumers/public headers. The preceding 216/222 result is retained as failure
+  evidence; TCP send shutdown before close fixes the peer resets without
+  weakening assertions.
 
 Hosted Linux arm64 and the pinned macOS dependency stack now also pass all 222
 tests and installed consumers. The macOS runner required a test-only thread

@@ -1,125 +1,191 @@
-# connect-cc
+# Connect for C++
 
-Work in progress toward a C++20 ConnectRPC client and server. **Experimental; not a complete or released implementation.** See [the accepted plan](docs/PLAN.md).
+[![CI](https://github.com/happenings-dk/connect-cc/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/happenings-dk/connect-cc/actions/workflows/ci.yml)
+[![Packages](https://github.com/happenings-dk/connect-cc/actions/workflows/packages.yml/badge.svg?branch=main)](https://github.com/happenings-dk/connect-cc/actions/workflows/packages.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-Licensed under [Apache-2.0](LICENSE), matching
-[connect-rust](https://github.com/connectrpc/connect-rust/blob/main/LICENSE).
+**Typed RPC clients and servers for C++20, with Connect, gRPC and gRPC-Web.**
 
-Implemented so far:
+Define a service in Protocol Buffers, generate its C++ bindings, and implement
+its handlers. `connect-cc` handles serialization, routing, streaming, compression,
+metadata and RPC errors. The same service can communicate with clients and
+servers across the [ConnectRPC ecosystem](https://connectrpc.com/).
 
-- CMake library and relocatable `connectcpp::connectcpp` export.
-- Status/value result types, protobuf and protobuf JSON codecs.
-- Incremental Connect, gRPC, and gRPC-Web envelope parsing with per-message
-  bounds and sticky errors. Connect terminal payloads have a separate streaming
-  decoder; gRPC status travels in HTTP trailers and gRPC-Web in body trailers.
-- gzip compression and bounded decompression across concatenated members.
-- nghttp2 client/server unary sessions with multiplexing, reset notifications,
-  GOAWAY handling, bounded messages, and bounded output batches.
-- Asio h2c and TLS unary transport, deadlines and caller cancellation.
-- [Incremental HTTP/2 byte streams](docs/STREAMING.md) over TCP/TLS with bounded
-  queues, application-driven flow control, half-close, trailers and shutdown.
-- Public server/client/bidirectional streaming client methods, with schema
-  cardinality checks and early server error preservation.
-- Streaming service routing with response metadata, terminal status flushing,
-  cooperative handler deadlines, peer-disconnect cancellation and joined tasks.
-- Typed Connect message streams with per-message gzip, terminal status/details,
-  trailers, cancellation, and bounded pull decoding.
-- Concurrent server handlers, stream-reset cancellation and joined completion.
-- Shared unary/streaming HTTP/2 serving loop with bounded admission, cancellation
-  and joined shutdown; independent request and response size limits.
-- Shared unary client transport with concurrent upload/response progress,
-  early-response preservation and joined cancellation.
-- [gRPC over HTTP/2](docs/GRPC.md) for all four RPC shapes, including JSON,
-  gzip, deadlines, HTTP trailers, trailers-only responses and typed errors.
-- [gRPC-Web binary/text](docs/GRPC_WEB.md) for all RPC shapes, incremental base64,
-  body trailers and trailers-only responses.
-- Verified TLS with DNS/IP checks, mandatory h2 ALPN for HTTP/2 and optional mTLS.
-- [HTTP/1.1 connections](docs/HTTP1.md) over TCP/TLS: bounded queues, fixed and
-  chunked bodies, sequential keep-alive reuse, cancellation, early responses,
-  deadlines and joined serving. Connect and gRPC-Web support unary, server
-  streaming and client streaming; native gRPC and bidi require HTTP/2.
-- [Connect GET](docs/GET.md) for generated side-effect-free unary methods,
-  deterministic protobuf/JSON cache keys, gzip queries and bounded decoding.
-- Typed unary Client/Server API, Connect POST wire semantics, compression,
-  timeout headers, error details, and leading/trailing metadata.
+The runtime uses standalone Asio, Google's C++ Protobuf runtime, nghttp2,
+llhttp, OpenSSL and zlib. It integrates with your Asio event loop and exposes
+both coroutine operations and callback completion.
 
-The [official conformance profiles](docs/CONFORMANCE.md) pass 970 Connect client
-and 970 Connect server cases, plus 1,084 gRPC client and 876 gRPC server cases.
-gRPC-Web adds 1,110 client and 696 server cases. All RPC shapes are covered
-over HTTP/2. HTTP/1.1 adds 1,658 client and 1,334 server cases across Connect
-and gRPC-Web (8,698 cases total), including Connect GET.
-[Browser CORS middleware](docs/CORS.md) has separate local TCP/TLS tests.
-Other release gates remain pending; these profiles do not establish full v1 compliance.
-See [progress](docs/PROGRESS.md).
+**Status: experimental, pre-release.** This is an independent implementation,
+not an official ConnectRPC project. APIs may change. The pinned official
+conformance profiles pass 8,698 cases on Linux, macOS and Windows MSVC.
+See the [verification report](docs/HOSTED_VERIFICATION.md)
+for exact revisions, results and remaining release gates.
 
-[`Async` callback completion](docs/CALLBACKS.md) adapts generated calls, typed
-stream operations and connection operations while preserving Asio executor,
-allocator and cancellation associations. A runnable installed-package example
-in `examples/callbacks` exercises all four RPC shapes.
+[Getting started](docs/GETTING_STARTED.md) · [Documentation](docs/README.md) ·
+[Examples](examples/README.md) · [Contributing](CONTRIBUTING.md)
 
-[Call interceptors](docs/INTERCEPTORS.md) support asynchronous authentication,
-metadata changes and per-call observation on clients and servers. Request hooks
-respect deadlines and cancellation; stream completion follows final status.
+## Features
 
-## Build
+- **One service, three protocols.** Connect, gRPC and binary/text gRPC-Web use
+  the same generated clients and handlers.
+- **All four RPC shapes.** Unary, server streaming, client streaming and
+  bidirectional streaming, with backpressure and bounded queues.
+- **Protobuf and JSON.** Google's generated message classes, structured errors
+  with typed details, leading metadata and trailers.
+- **Asynchronous C++.** `co_await` with Asio, or callbacks through `Async`.
+  Applications own their executors, connections and listener lifecycle.
+- **Transport controls.** HTTP/1.1 and HTTP/2, verified TLS, ALPN, optional mTLS,
+  deadlines, cancellation, message limits and bounded connection shutdown.
+- **Application integration.** Client/server interceptors, gzip compression,
+  cacheable Connect GET calls and configurable browser CORS middleware.
+- **Build integration.** A Go `protoc` plugin, Buf code generation, an exported
+  CMake target, and local vcpkg and Conan recipes.
 
-Dependencies: CMake 3.25+, C++20 compiler, Ninja (optional), Google Protobuf with
-its matching C++ runtime, zlib, standalone Asio, OpenSSL 3+, llhttp, pkg-config,
-nghttp2 1.61+, and GoogleTest for tests.
+| Protocol | HTTP/1.1 | HTTP/2 | Message encoding |
+| --- | --- | --- | --- |
+| Connect | Unary, server/client streaming | All four shapes | Protobuf, JSON |
+| gRPC | — | All four shapes | Protobuf, JSON |
+| gRPC-Web | Unary, server/client streaming | All four shapes | Protobuf, JSON; binary or base64 framing |
 
-The [pinned vcpkg baseline](docs/DEPENDENCIES.md) and `ci/run-linux.sh` provide
-reproducible Linux GCC 14/Clang 18 builds. The CI workflow also defines macOS,
-Windows, sanitizer and [parser fuzzing](docs/FUZZING.md) jobs; executed results
-are recorded separately in [conformance evidence](docs/CONFORMANCE.md).
-The [release acceptance audit](docs/RELEASE_AUDIT.md) maps the implementation to
-the full plan and identifies the outstanding Windows/MSVC verification gate.
+Bidirectional streaming requires HTTP/2. Browser APIs can impose additional
+streaming restrictions; gRPC-Web support in this C++ runtime does not remove
+those browser limitations.
 
-[vcpkg and Conan recipes](docs/PACKAGING.md) package the static runtime and
-support independent CMake consumers. The Go generator is built separately from
-the same source snapshot.
+## A small example
 
-[Reproducible gRPC C++ benchmarks](docs/BENCHMARKS.md) include all raw runs,
-latency percentiles, dependency/source fingerprints and workload limitations.
+Start with a schema:
+
+```protobuf
+syntax = "proto3";
+package greet.v1;
+
+service GreetService {
+  rpc Greet(GreetRequest) returns (GreetResponse);
+}
+
+message GreetRequest { string name = 1; }
+message GreetResponse { string greeting = 1; }
+```
+
+`protoc-gen-connect-cpp` generates a typed client and an abstract handler next
+to Google's message classes. Implement the handler:
+
+```cpp
+#include "greet.connect.h"
+
+class Greeter final
+    : public connectrpc::generated::greet::v1::GreetServiceHandler {
+ public:
+  asio::awaitable<connectrpc::Response<greet::v1::GreetResponse>> Greet(
+      connectrpc::Request<greet::v1::GreetRequest> request) override {
+    connectrpc::Response<greet::v1::GreetResponse> response;
+    response.message.emplace().set_greeting("Hello, " + request.message.name());
+    co_return response;
+  }
+};
+```
+
+Register it before serving connections, and check the returned status:
+
+```cpp
+Greeter greeter;
+connectrpc::Server server;
+auto status = connectrpc::generated::greet::v1::RegisterGreetServiceHandler(
+    server, greeter);
+```
+
+On the client, supply a runtime `connectrpc::Client` connected to your HTTP
+transport. Inside a coroutine:
+
+```cpp
+connectrpc::generated::greet::v1::GreetServiceClient client(runtime);
+greet::v1::GreetRequest request;
+request.set_name("World");
+
+auto response = co_await client.Greet(std::move(request));
+if (!response.status.ok()) co_return response.status;
+std::cout << response.message->greeting() << '\n';
+```
+
+The [getting started guide](docs/GETTING_STARTED.md) covers building, generating
+these bindings and connecting the RPC API to Asio. The
+[callback example](examples/callbacks/main.cc) is a complete executable with a
+real client and server, all four RPC shapes, interceptors and joined shutdown.
+
+## Build and use
+
+Requirements: CMake 3.25+, a C++20 compiler, and the
+[runtime dependencies](docs/DEPENDENCIES.md). Go 1.26+ is needed to build the
+code generator and conformance tools, but is not a runtime dependency.
+The pinned vcpkg baseline and Conan lockfile provide reproducible dependency
+versions; [getting started](docs/GETTING_STARTED.md) gives the full setup.
+
+With dependencies available to CMake:
 
 ```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCONNECTCPP_BUILD_GENERATOR=ON
+cmake --build build --parallel 3
 ctest --test-dir build --output-on-failure
-```
-
-On Homebrew installations, add
-`-DCMAKE_PREFIX_PATH="/opt/homebrew;/opt/homebrew/opt/libnghttp2"` if needed.
-Sanitizers: configure a separate build with `-DCONNECTCPP_SANITIZE=ON`.
-This defaults `CONNECTCPP_FETCH_GTEST=ON`, downloading the hash-pinned
-GoogleTest 1.18.0 source and instrumenting it too. See [sanitizer notes](docs/SANITIZERS.md).
-
-```sh
 cmake --install build --prefix "$PWD/install"
-cmake -S examples/consumer -B build-consumer -DCMAKE_PREFIX_PATH="$PWD/install"
-cmake --build build-consumer
 ```
 
-The application owns its Asio event loop. `Http2Connection` provides multiplexed
-byte streams; `ServeHttp2Connection` owns its server I/O loop and bounded handler
-tasks. `Client({}, stream_exchange)` uses the same byte transport for all RPC
-shapes. Lower-level session engines remain available for custom I/O integration;
-their access must be serialized. These APIs can change before v1.
+Consumers link the installed target:
 
-TLS callers configure an `asio::ssl::context` with `ConfigureTlsContext` before
-creating the stream. `UnaryHttp2Tls` enables peer and hostname verification and
-negotiates h2; there is no insecure verification bypass. Provide a PEM trust file
-or in-memory PEM for private certificate authorities. The tests create ephemeral certificates and
-keys in each build directory, never in the source tree.
+```cmake
+find_package(connectcpp CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE connectcpp::connectcpp)
+```
 
-[`HttpConnection::CreateTls`](docs/TLS_NEGOTIATION.md) negotiates h2 or HTTP/1.1
-and hands the verified TLS stream to the selected engine. Its common connection
-API preserves HTTP/1.1 sequential reuse and HTTP/2 multiplexing. HTTP/1.1 fallback
-still rejects native gRPC and bidirectional RPCs.
+Use the same Protobuf compiler version as the linked C++ runtime. Before a
+stable release, pin a source revision and rebuild when compiler or dependency
+versions change. Packages are currently built from source; no public package
+registry or stable binary ABI is promised.
 
-`TransportOptions::deadline` is an absolute monotonic deadline including TLS
-handshake time. The current transport accepts an already connected socket, so
-DNS and TCP connection deadlines remain the caller's responsibility.
+## Documentation
 
-The Go [`protoc-gen-connect-cpp`](docs/CODEGEN.md) plugin generates typed clients
-and abstract coroutine handlers for all four RPC shapes, with protoc and Buf.
-Generated fixtures are compiled and exercised by CTest.
+| Topic | Guide |
+| --- | --- |
+| Installation, code generation and first call | [Getting started](docs/GETTING_STARTED.md) |
+| Generated clients and service handlers | [Code generation](docs/CODEGEN.md) |
+| Streaming, ownership and flow control | [Streaming](docs/STREAMING.md) |
+| Callback completion and cancellation | [Callbacks](docs/CALLBACKS.md) |
+| Authentication, metadata and observation | [Interceptors](docs/INTERCEPTORS.md) |
+| HTTP/1.1, TLS and protocol negotiation | [HTTP/1.1](docs/HTTP1.md), [TLS](docs/TLS_NEGOTIATION.md) |
+| Browser clients and cacheable requests | [CORS](docs/CORS.md), [Connect GET](docs/GET.md) |
+| Distribution and dependency versions | [Packaging](docs/PACKAGING.md), [Dependencies](docs/DEPENDENCIES.md) |
+| Protocol coverage and executed checks | [Conformance](docs/CONFORMANCE.md), [Verification](docs/HOSTED_VERIFICATION.md) |
+| Performance and parser hardening | [Benchmarks](docs/BENCHMARKS.md), [Fuzzing](docs/FUZZING.md) |
+
+The [documentation index](docs/README.md) also links protocol-specific guides,
+public headers, sanitizer instructions and the release audit.
+
+## Compatibility and project status
+
+The official [ConnectRPC conformance suite](https://github.com/connectrpc/conformance)
+is pinned to a source revision and run in both client and server modes. The
+ten configured profiles cover 4,822 client and 3,876 server cases. They form
+part of the 222-entry CTest suite, alongside generated-code, transport,
+malformed-input and cross-language interoperability tests. Passing these
+profiles is evidence of interoperability, not official certification or
+maintainer endorsement.
+
+Linux GCC/Clang, Linux arm64, macOS, Windows MSVC, ASan/UBSan and TSan checks
+have passed. [Executed results](docs/HOSTED_VERIFICATION.md)
+distinguish successful revisions from current work. See the
+[release audit](docs/RELEASE_AUDIT.md) for the complete acceptance criteria.
+
+The generator supports proto2/proto3 with the full Protobuf runtime. Editions
+and lite-runtime schemas are rejected explicitly. DNS, TCP connection setup,
+connection pooling, listener management and native OS trust-store integration
+remain application responsibilities. Callbacks still require a C++20 toolchain.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, relevant
+test commands and how to report reproducible protocol failures. Changes to wire
+behavior should include a regression and pass the affected official profiles.
+
+## License
+
+[Apache License 2.0](LICENSE).

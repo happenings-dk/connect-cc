@@ -40,22 +40,22 @@ Fuzz configuration is separate from TSan. The CI smoke budget is finite and is
 not a claim of exhaustive parser coverage or proof of protocol compliance.
 CONFORMANCE.md tracks executed verification, distinct from configured jobs.
 
-After adding concatenated gzip decoding and its seed, Linux Clang 18 with
-ASan/UBSan completed 7,065,302 inputs in 121 seconds without a finding. This
-task run used a two-CPU, 8-GiB container and the existing evolved corpus with
-the new seed added. The log and retained corpus live in the verification
-workspace; the source seed is `fuzz/corpus/gzip-members`. This result supersedes
-the earlier campaign as evidence for the current decoder, without implying
-exhaustive coverage.
+## Recorded verification
 
-After correcting Connect's ordered compression preferences, a fresh campaign
-completed 5,798,617 inputs in 121 seconds without a finding, under the same
-Linux Clang 18 ASan/UBSan limits. Mode 6 now also feeds arbitrary encoding lists
-to the Connect streaming request decoder; `fuzz/corpus/encoding-preference`
-seeds an identity-before-gzip list. The latest log and evolved corpus are
-retained under `build/verification/release-audit/` in the development workspace.
-After the nghttp2 portability migration, another campaign completed 6,472,150
-inputs in 121 seconds without a finding. Its log is retained under
-`build/verification/portable-nghttp2/fuzz-final-audit.log`; the evolved corpus
-remains in the task verification workspace. This is the latest campaign against
-the current runtime.
+At runtime revision `72d2739`, Linux Clang 18 with ASan/UBSan completed
+**7,099,792 inputs in 121 seconds** without a finding. The task used a two-CPU,
+8-GiB container and the evolved corpus plus all checked-in seeds. Logs are
+retained in `build/verification/tcp-shutdown/fuzz-final-audit.log` in the
+development workspace. The corpus includes the concatenated-gzip and
+identity-before-gzip regressions.
+
+The [hosted campaign](https://github.com/happenings-dk/connect-cc/actions/runs/43524141112/job/132225569915)
+at `a705cb6` completed 2,903,286 inputs in 121 seconds without a finding.
+[Hosted verification](HOSTED_VERIFICATION.md) records this separately from
+compiler/conformance checks. Earlier local campaign logs are retained by source
+revision in the verification workspace.
+
+These are finite campaigns with explicit input, memory and time limits. A run
+without a finding does not establish exhaustive coverage or prove that a parser
+is free of defects. Keep discovered failures as regression inputs and rerun the
+relevant harness whenever parser behavior changes.

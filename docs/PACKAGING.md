@@ -81,8 +81,10 @@ cmake --build build/conan-consumer
 The generated CMake target has the same `connectcpp::connectcpp` name and
 public C++20 requirement as the native install. `ci/run-conan-package.sh` also
 builds the complete source test matrix against Conan's dependency stack, then
-compiles and runs the separate examples and all public headers. The prepared
-GitHub package workflow runs these scripts; hosted jobs have not been executed.
+compiles and runs the separate examples and all public headers. The
+[hosted package workflow](https://github.com/happenings-dk/connect-cc/actions/runs/43524141109)
+has passed both package jobs. Exact revisions and subsequent local package
+checks are recorded in [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md).
 
 Conan Center currently provides nghttp2 1.68.1 and llhttp 9.3.0 in this recipe,
 whereas the vcpkg baseline uses 1.71.0 and 9.4.3. The other runtime versions are

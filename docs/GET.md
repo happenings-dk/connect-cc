@@ -71,7 +71,9 @@ allocating storage proportional to their length.
   versus decompressed limits.
 - Unit tests cover query syntax, URL limits, malformed UTF-8 and base64, unknown
   parameters, padding, deterministic maps, eligibility and HTTP errors.
-- The normal and ASan/UBSan suites pass 176 entries. Go generator race tests,
-  vet and staticcheck pass; the GET codec's Clang static analysis is clean.
+- GET checks are included in the 222-entry suite and exercised in normal and
+  ASan/UBSan builds. Go generator race tests, vet and staticcheck also cover
+  eligibility propagation. See [hosted verification](HOSTED_VERIFICATION.md)
+  for exact revisions and platform results.
 
 Reference: [Connect Unary-Get-Request specification](https://connectrpc.com/docs/protocol/#unary-get-request).

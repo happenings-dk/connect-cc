@@ -25,12 +25,12 @@ The optional `benchmarks` manifest feature adds native gRPC C++ 1.84.0 and its
 registry-pinned dependencies. It uses a separate installed directory in
 `ci/run-benchmarks.sh`; runtime consumers do not acquire this dependency.
 
-These versions have been built from source on Linux x86-64 and used for the
-GCC 14.2 and Clang 18 builds, full conformance matrix, installed consumers, and
-individual public-header compilation. The verified Homebrew builds on arm64
-macOS use Protobuf 36.1 and OpenSSL 4.1; vcpkg manifest resolution also passes
-there. This is not a claim that every platform has passed: Windows/MSVC and the
-remaining CI matrix are release gates. See CONFORMANCE.md for executed evidence.
+The pinned dependency stack has passed hosted Linux x86-64 GCC/Clang, Linux
+arm64 and macOS builds, including all conformance profiles and installed
+consumers. Separate Homebrew builds on arm64 macOS use Protobuf 36.1 and
+OpenSSL 4.1. Windows MSVC also passes the full suite and installed consumers.
+See [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) for
+exact revisions and results, rather than inferring support from a manifest.
 
 The Linux baseline requires GCC 14 or Clang 18. GCC 13.3 hits an internal compiler
 error while compiling coroutine-heavy integration tests; GCC 14.2 compiles the

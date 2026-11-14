@@ -1,4 +1,4 @@
-# HTTP/1.1 implementation progress
+# HTTP/1.1
 
 HTTP/1.1 connections implement Connect and gRPC-Web unary, server streaming and
 client streaming over TCP or verified TLS. The pinned official profile passes
@@ -110,35 +110,36 @@ checks are unchanged. Applications must configure contexts before creating
 streams. `HttpConnection::CreateTls` negotiates and selects the corresponding
 engine automatically; its common API retains each engine's lifecycle contract.
 
-## Verification and remaining work
+## Verification
 
 Local tests exercise all fragment sizes for representative requests, chunked
 bodies, compressed-RPC-compatible binary data, trailers, informational and
 close-delimited responses, explicit keep-alive admission, invalid framing,
 oversized metadata and bounded body chunks. TLS loopback tests cover every
 server/client policy pair, absent ALPN and reversed client preference.
-Clang's static analyzer checks the new codec and TLS implementation; local
+Clang's static analyzer checks the codec and TLS implementation; local
 manual review covers trust validation, downgrade behavior, allocation limits,
 framing ambiguity, hop-by-hop fields and trailer restrictions. This scoped
 review is not a full security audit or dependency vulnerability assessment.
 
-The full local CTest suite passes 176 entries normally and with ASan/UBSan,
+The full local CTest suite passes 222 entries normally and with ASan/UBSan,
 including all ten official conformance runs. Socket tests exercise fixed and
 chunked requests/responses, metadata/trailers, repeated reuse, canceled reads,
 second-call cancellation, slow receivers, large early responses, deadlines,
 bounded shutdown, informational statuses and truncated/close-delimited bodies.
 RPC loopback tests cover all supported shapes with protobuf/JSON, identity/gzip
 and gRPC-Web binary/text. Installed-package consumers compile and link the
-connection API separately; all 17 public headers compile independently.
+connection API separately; all 21 public headers compile independently.
 
 Clang static analysis of the connection reports two coroutine-internal Asio
 warnings. Minimal Asio-only functions reproduce both; no Connect code is needed.
 The codec/TLS analysis is clean, but the connection scan is not reported as clean.
 The complete normal and sanitizer lifecycle tests pass.
 
-Next: callbacks, interceptors and the remaining release gates in PLAN.md.
-These results are not an upstream
-endorsement or a full v1 compliance claim.
+[Callbacks](CALLBACKS.md) and [interceptors](INTERCEPTORS.md) use the same
+HTTP/1.1 transport. Exact platform results and remaining release gates are in
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md); these checks do not constitute
+upstream endorsement.
 
 References: [HTTP/1.1 framing, RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html),
 [llhttp API](https://github.com/nodejs/llhttp), and

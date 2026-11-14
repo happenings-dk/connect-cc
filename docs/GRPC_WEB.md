@@ -1,4 +1,4 @@
-# gRPC-Web over HTTP/2
+# gRPC-Web
 
 All four RPC shapes use the same generated clients and registered handlers as
 Connect and gRPC. Set `protocol = Protocol::kGrpcWeb` on `CallOptions` or
@@ -15,7 +15,7 @@ auto response = co_await client.Unary<RequestMessage, ResponseMessage>(
 ```
 
 `Client({}, stream_exchange)` and `Server::HandleHttpStream` share the existing
-HTTP/2 transport and routing. Protobuf/JSON, per-message gzip, deadlines,
+HTTP transport and routing. Protobuf/JSON, per-message gzip, deadlines,
 metadata, typed errors, concurrent upload/read and bounded buffering apply to
 binary and text mode. No additional generated files are required.
 
@@ -50,9 +50,13 @@ library. Local tests also cover arbitrary base64 segment/chunk boundaries,
 compressed trailers, large messages, early responses during blocked uploads,
 trailers-only responses and malformed data after terminal status.
 
-HTTP/1.1 and browser CORS handling remain pending. This is a native C++ client,
-so the HTTP/2 implementation can use client and bidirectional streaming even
-though browser gRPC-Web clients have additional limitations. These passing
-profiles are not the complete release gate; see CONFORMANCE.md.
+[HTTP/1.1](HTTP1.md) supports unary, server streaming and client streaming in
+binary and text modes. Bidirectional streaming requires HTTP/2. The official
+HTTP/1.1 profile includes binary gRPC-Web; text mode has local TCP/TLS coverage.
+[Browser CORS middleware](CORS.md) handles preflight and metadata exposure.
+Browser clients may impose further streaming restrictions: this native C++
+implementation does not remove them. See [Conformance](CONFORMANCE.md) for the
+exact coverage and [hosted verification](HOSTED_VERIFICATION.md) for platform
+results.
 
 Reference: [gRPC-Web protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md).

@@ -1,5 +1,5 @@
-2026-11-13T22:58:56Z
-Linux fe525e9adcd5 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+2026-11-14T00:14:46Z
+Linux ce7116597cb6 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
 binary=/workspace/build-benchmarks/benchmarks/connectcpp_benchmark repetitions=3 requests=5000 warmup=100
 Architecture:                            x86_64
 CPU op-mode(s):                          32-bit, 64-bit
@@ -16,7 +16,7 @@ Core(s) per socket:                      16
 Socket(s):                               1
 Stepping:                                0
 Frequency boost:                         enabled
-CPU(s) scaling MHz:                      63%
+CPU(s) scaling MHz:                      56%
 CPU max MHz:                             5756.4521
 CPU min MHz:                             624.1940
 BogoMIPS:                                8583.31

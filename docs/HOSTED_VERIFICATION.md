@@ -2,73 +2,124 @@
 
 The source is in the private
 [happenings-dk/connect-cc](https://github.com/happenings-dk/connect-cc) repository,
-created with Rasmus's authorization. Windows runs on GitHub's hosted MSVC
-runner; access to the homelab Windows machine is no longer required.
+with GitHub-hosted Linux, macOS and Windows runners. This report distinguishes
+executed results from pending checks and records the source used for each.
 
-## Recorded jobs
+## Current runtime verification
 
-The initial source revision is `fd5f5d7073024f110b04d98475c0750ced9f4760`.
-Each compiler lane runs the complete CTest suite, including the ten official
-conformance profiles, Go checks and independent installed consumers/headers.
-The 8,698 official cases are included within the 222 CTest entries, not added
-to that entry count. Test profiles and the pinned suite revision remain in
-[CONFORMANCE.md](CONFORMANCE.md).
+The corrected runtime is `72d27398a19fb7975a7624340f6787b3ec4a374b`.
+Windows MSVC passes at that revision. The refreshed non-Windows checks use
+`b9d8cbf68c57c8cc47613024466ef553c036af14`, with identical runtime and test
+sources; its only additional change is benchmark dependency caching/build time.
 
-| Lane | Result | Evidence |
+Each compiler lane builds the project, runs all **222 CTest entries**, runs Go
+checks, and compiles/runs independent installed consumers and all **21 public
+headers**. The ten official profiles contain **8,698 client/server cases**,
+nested within the CTest entries. [CONFORMANCE.md](CONFORMANCE.md) records the
+suite revision and profiles.
+
+| Lane | Hosted result | Evidence |
 | --- | --- | --- |
-| Linux GCC x86-64 | Pass: 222 tests and installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811988) |
-| Linux Clang x86-64 | Pass: 222 tests and installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812119) |
-| Linux GCC arm64 | Pass: 222 tests and installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812170) |
-| Linux ASan/UBSan | Pass: 222 tests and installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811990) |
-| macOS Apple Clang | Pass after test portability fix: 222 tests and installed consumers | [Corrected job](https://github.com/happenings-dk/connect-cc/actions/runs/43518818289/job/132207625331) |
-| Linux TSan | Initial run: all official profiles passed; interop wrapper timed out during a cold Go build; corrected run pending | [Initial job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812115) |
-| Windows MSVC | Initial build failed on legacy nghttp2 ssize_t declarations; portable API fix under verification | [Initial job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197812179) |
-| vcpkg package | Pass: installed examples and 21 public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197810237) |
-| Conan package | Pass: 222 tests, installed examples and public headers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515946715/job/132197809663) |
-| Parser fuzzing | Pass: 2,770,352 inputs in 121 seconds, no finding | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43515947046/job/132197811548) |
-| Benchmark harness smoke | Pass: all 30 scenarios, zero errors | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43515948558) |
+| Windows MSVC 19.51 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43532212334) |
+| macOS Apple Clang | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533030051) |
+| Linux GCC x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533033665) |
+| Linux Clang x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533038312) |
+| Linux GCC arm64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533042437) |
+| Linux ASan/UBSan | Refreshed run in progress | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533046764) |
+| Linux TSan | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533051124) |
 
-The first macOS job failed because the runner's AppleClang 17/libc++ did not
-provide `std::jthread`. One callback test now uses `std::thread`; it already
-explicitly joined both threads. The corrected run used `a72576e`, also adding
-dependency caching and selection of individual compiler lanes for manual runs.
-Runtime, generator, protocol, packaging and example sources are identical to
-`fd5f5d7`; the test's concurrency and cancellation assertions are unchanged.
-The full push/PR matrix remains enabled. A macOS-only manual run intentionally
-does not rerun Linux fuzzing; the separate full run above verifies it.
+Independent Linux GCC/Clang, ASan/UBSan and TSan runs of the corrected source
+already pass 222/222 and installed consumers/headers. macOS normal and ASan/UBSan
+also pass 222/222. Their source manifest matches all 132 runtime/test/package
+files against the verification workspace; logs are retained under
+`build/verification/tcp-shutdown/` and `build/verification/tcp-shutdown-*.log`.
 
-The first hosted TSan run passed 221 entries, including every official profile,
-without a race report. `Interop.Go` reached `PASS` in its assertions but exceeded
-CTest's 90-second outer budget, which also included a cold Go race compilation.
-The race-enabled Go helper is now compiled during the CMake build, then executed
-directly by CTest. The RPC assertions and 90-second runtime limit are unchanged.
-Local generator and interoperability checks pass; the corrected hosted TSan
-result must still be recorded.
+All six non-Windows hosted lanes previously passed at `c4bf581`, before the
+shutdown correction: [GCC](https://github.com/happenings-dk/connect-cc/actions/runs/43529834443),
+[Clang](https://github.com/happenings-dk/connect-cc/actions/runs/43529837747),
+[arm64](https://github.com/happenings-dk/connect-cc/actions/runs/43529841530),
+[macOS](https://github.com/happenings-dk/connect-cc/actions/runs/43529830282),
+[ASan/UBSan](https://github.com/happenings-dk/connect-cc/actions/runs/43529845399),
+and [TSan](https://github.com/happenings-dk/connect-cc/actions/runs/43529848684).
+That historical baseline is distinct from the refreshed runs above.
 
-The initial MSVC build found a genuine portability gap: both HTTP/2 engines used
-nghttp2's deprecated POSIX `ssize_t` APIs. They now use `nghttp2_ssize`,
-`nghttp2_data_provider2` and the corresponding request/response/memory I/O APIs.
-`NGHTTP2_NO_SSIZE_T` disables the old declarations for the library build on all
-platforms, preventing accidental reliance on POSIX types. Both build and package
-configuration require nghttp2 1.61 or newer, where these APIs are available.
-This runtime change requires fresh verification; the initial successful jobs
-above remain historical evidence until the updated checks finish.
+These manual runs select individual compiler lanes without reducing their test
+coverage. Push/PR runs retain the complete matrix. Parser fuzzing is a separate
+job; its evidence is below. Cached dependencies are ABI-checked by vcpkg;
+project compilation, tests and installed consumers always run.
 
-The portable API implementation at `27aa874` passes all 222 entries locally on
-macOS Apple Clang, both normally and with ASan/UBSan. Independent Linux GCC 14,
-Clang 18, ASan/UBSan and instrumented TSan runs also pass all 222 entries and
-installed consumers/headers. The Conan package passes the complete suite and
-installed consumers. The vcpkg package independently passes both installed
-examples and all 21 public headers. The repeated benchmark run passes all 90
-scenarios and 449,640 measured RPCs with zero errors; see [BENCHMARKS.md](BENCHMARKS.md).
-A fresh parser fuzz run completed 6,472,150 inputs in 121
-seconds without a finding. These results are retained under
-`build/verification/portable-nghttp2/`; the corrected hosted Windows job remains
-the outstanding platform gate.
+## Additional evidence
+
+- [Hosted vcpkg and Conan jobs](https://github.com/happenings-dk/connect-cc/actions/runs/43524141109)
+  passed at `a705cb6`, including all 222 Conan tests and independent consumers.
+  Both packages were rebuilt locally on Linux against `72d2739`: Conan passes
+  222/222 and both packages pass installed examples and all 21 public headers.
+- [Hosted parser fuzzing](https://github.com/happenings-dk/connect-cc/actions/runs/43524141112/job/132225569915)
+  completed 2,903,286 inputs in 121 seconds without a finding at `a705cb6`.
+  A fresh Linux ASan/UBSan campaign on `72d2739` completed 7,099,792 inputs
+  in 121 seconds without a finding. See [FUZZING.md](FUZZING.md).
+- The [hosted benchmark run](https://github.com/happenings-dk/connect-cc/actions/runs/43524141262)
+  at `a705cb6` exhausted 60 minutes compiling native gRPC dependencies, before
+  RPC measurement. `b9d8cbf` adds dependency caching and a 90-minute job budget;
+  the [replacement run](https://github.com/happenings-dk/connect-cc/actions/runs/43532346830)
+  is in progress. The measured Linux run at `72d2739` passes all 90
+  scenarios and 449,640 RPCs with zero errors. Raw results, source fingerprints,
+  environment and measurement limits are in [BENCHMARKS.md](BENCHMARKS.md).
+- Independent Linux GCC 14, Clang 18, ASan/UBSan and instrumented TSan runs at
+  `c4bf581` pass all 222 tests and installed consumers/headers. macOS normal
+  tests pass 222/222. The macOS sanitizer run passed all C++/protocol tests;
+  its Go-generator check failed on missing files in the shared Go cache, then
+  passed unchanged with the isolated `GOCACHE=$PWD/build/go-cache`.
+  Logs and exact source fingerprints are retained under
+  `build/verification/msvc-coroutine/` and `build/verification/msvc-coroutine*.log`.
+
+## Failures found and corrected
+
+The initial import was `fd5f5d7`. Its full hosted run is retained as historical
+failure evidence, not represented as a successful run.
+
+1. AppleClang 17/libc++ did not provide `std::jthread`. A callback test now uses
+   `std::thread`; both threads were already explicitly joined. Its concurrency
+   and cancellation assertions are unchanged. The corrected macOS job passes.
+2. The original TSan job passed every official profile and reported no race,
+   but `Interop.Go` exceeded its outer 90-second limit during a cold Go race
+   compilation. CMake now compiles that helper during the build, then CTest
+   executes it directly. Assertions and the runtime limit are unchanged.
+   The [corrected job](https://github.com/happenings-dk/connect-cc/actions/runs/43521855870/job/132217907387)
+   passes all 222 tests; interoperability takes 1.42 seconds.
+3. MSVC rejected nghttp2's legacy POSIX `ssize_t` declarations. Both HTTP/2
+   engines now use `nghttp2_ssize`, `nghttp2_data_provider2` and the matching
+   request/response/memory I/O APIs. Private `NGHTTP2_NO_SSIZE_T` prevents old
+   declarations on every platform. Build and installed package configurations
+   require nghttp2 1.61 or newer.
+4. After that fix compiled, MSVC 19.51 crashed internally with C1001 in its
+   optimizer at the nested coroutine lambda in `Server::HandleHttpStream`.
+   The [first occurrence](https://github.com/happenings-dk/connect-cc/actions/runs/43522666372/job/132220632959)
+   and [independent reproduction](https://github.com/happenings-dk/connect-cc/actions/runs/43524141112/job/132225623503)
+   retain the compiler diagnostics. `c4bf581` moves the unary-body coroutine
+   into a named internal helper and uses a non-coroutine capture adapter.
+   Optimization remains enabled; no protocol behavior or assertion was removed.
+
+5. The first executable MSVC run passed 216/222 entries. Failures in unary
+   loopback, generated bindings, interceptor integration and the HTTP/1.1 server
+   profile exposed peer resets at socket close. The verified correction calls
+   TCP `shutdown_send` before close, without masking errors or changing status
+   assertions. Its first regression setup incorrectly injected reserved
+   `connection` metadata; the corrected regression invokes the public
+   `Shutdown` operation after a large complete response. That invalid-fixture
+   hosted run was canceled and replaced by the exact corrected revision.
+   The corrected MSVC Release run passes 222/222 with zero failures/skips,
+   including every official profile, plus installed consumers and headers.
+
+One early Windows dispatch picked up the preceding revision while an SSH upload
+was delayed. It was canceled as stale; the current run's SHA was verified before
+using its result. A vcpkg local rerun also refused to overwrite an existing
+output overlay; a fresh output directory completed successfully without a source
+change. These setup failures are separate from protocol test results.
 
 Artifacts retain JUnit results, CTest logs and CMake diagnostics for 14 days.
 Downloaded copies and complete job logs are preserved in the development
 workspace under `build/verification/github/` and `build/verification/`.
 These finite tests are compatibility evidence, not upstream endorsement or
 proof that every possible input has been tested. Pending jobs do not count as
-passes, and the complete objective remains open until Windows is verified.
+passes. The evidence above applies to the stated source and platform matrix.
