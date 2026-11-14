@@ -104,3 +104,16 @@ go build -trimpath -o build/bin/protoc-gen-connect-cpp ./cmd/protoc-gen-connect-
 
 Use that binary with protoc or Buf as shown in CODEGEN.md. Google C++ protobuf
 generation must use the compiler version matching the linked protobuf runtime.
+
+## Lite variant
+
+Use `CONNECTCPP_PROTOBUF_LITE=ON` for CMake, the `lite` feature in the local
+vcpkg overlay, or `-o 'connectcpp/*:protobuf_lite=True'` for Conan. Full and Lite
+variants must use separate installation/build directories. The exported target
+carries the required compile definition and `libprotobuf-lite` dependency.
+Conan's package ID includes the option. Package checks build a separate
+[Lite consumer](../examples/lite), with generated Lite messages and protocol
+error details. See [PROTOBUF_LITE.md](PROTOBUF_LITE.md).
+
+Native trust adds Security/CoreFoundation frameworks on macOS and `crypt32` on
+Windows. Both CMake and Conan exports carry these platform link dependencies.

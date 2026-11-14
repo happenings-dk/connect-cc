@@ -14,10 +14,10 @@ evidence. The repository is hosted privately at
 | RPC shapes | Unary, server streaming, client streaming and bidirectional streaming |
 | HTTP | HTTP/1.1 for Connect/gRPC-Web non-bidi calls; HTTP/2 for all shapes and protocols |
 | Messages | Google C++ Protobuf, protobuf JSON, bounded gzip, typed errors, metadata and trailers |
-| Transport | Asio TCP/TLS, verified certificates and hostnames, ALPN, mTLS, flow control, cancellation, deadlines and bounded shutdown |
+| Transport | Managed URL dialing/pooling, Asio TCP/TLS, native macOS/Windows trust, verified certificates and hostnames, ALPN, mTLS, flow control, cancellation, deadlines and bounded shutdown |
 | Application API | Typed clients and coroutine handlers, callback completion, client/server interceptors |
 | Web integration | Eligible Connect GET requests and configurable CORS middleware |
-| Generation | Go protoc plugin, Buf integration, proto2/proto3 full-runtime message classes |
+| Generation | Go protoc plugin, Buf integration, proto2/proto3, Editions 2023–2024 and Lite message classes |
 | Distribution | CMake install/export, local vcpkg and Conan recipes, independent consumers |
 | Verification | Official client/server adapters, regression tests, Go interoperability, sanitizers, parser fuzzing and reproducible benchmarks |
 
@@ -26,44 +26,33 @@ See the [documentation index](README.md) for API and protocol guides.
 ## Verification and remaining work
 
 The pinned official matrix contains 4,822 client and 3,876 server cases across
-ten CTest entries. The complete suite contains 222 entries. Linux GCC/Clang,
-Linux arm64, macOS, ASan/UBSan and TSan runs have passed, along with installed
-consumers and public-header checks. These results have explicit source
-revisions in [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md).
+ten CTest profiles. The expanded local macOS suite passes **235/235**. ASan/UBSan
+passes 234/234 plus the additional caller-cancellation regression. A separate Lite build passes
+its generated-binding/transport tests and an installed consumer without linking
+full Protobuf. The native macOS system-trust HTTPS probe passes.
 
-**Windows MSVC now passes the full suite and installed-package checks.** The
-[corrected hosted run](https://github.com/happenings-dk/connect-cc/actions/runs/43532212334)
-uses runtime revision `72d2739`. It fixes connection resets observed in the
-first executable Windows run, without weakening protocol assertions. The same
-correction passes 222/222 locally on Linux GCC/Clang/ASan/TSan and macOS normal
-and ASan/UBSan. Hosted macOS, Linux GCC/Clang, Linux arm64 and TSan reruns also
-pass. The refreshed hosted ASan/UBSan lane is still finishing and is tracked in
-the verification report.
-
-The hosted benchmark harness is being rerun after a cold gRPC dependency
-build exhausted its time budget. Historical measured results remain labeled by
-revision; a pending run is not counted as successful.
-
-The required platform families now have passing evidence. Preserve exact
-revisions and artifacts, and distinguish pending repeat checks from completed
-runs. Public release, package-registry publication and upstream adoption
-are separate steps. No official ConnectRPC certification or endorsement is
-claimed.
+Hosted verification of the support expansion is in progress at revisions
+`b55d2d9` and `22fcb33`. [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact runs;
+prior platform results are historical, not evidence for untested new changes.
+Public release, registry publication and upstream adoption remain separate
+steps. No official certification or maintainer endorsement is claimed.
 
 ## API boundaries
 
-- Applications own DNS, TCP connection establishment, connection pooling,
-  listener lifetime, executor threads and joining their operations.
+- ManagedTransport owns URL dialing, pooling and connection tasks. Applications
+  own server listeners and executor threads and await its Close operation.
+  Lower-level socket/connection APIs remain available.
 - RPC errors are values. Coroutine/callback users share the same transport and
   protocol implementation; callbacks still require a C++20 compiler.
 - Stream consumers read through EOF and inspect final status. A successful read
   or a provisional client-streaming response alone does not establish RPC success.
 - Cancellation is cooperative. Blocking application code cannot be forcibly
   interrupted; handlers must join child work before returning.
-- TLS uses OpenSSL trust configuration. Native OS certificate-store integration
-  and a public TLS close-notify convenience are not implemented.
-- The generator supports proto2/proto3 with the full Protobuf runtime. Editions
-  and lite-runtime schemas are explicitly rejected.
+- TLS defaults to native macOS/Windows policy or OpenSSL system roots on other
+  platforms. Explicit CA overrides use OpenSSL. Shutdown exchanges close-notify
+  within a deadline; Cancel is an abort.
+- The generator supports proto2/proto3 and Editions 2023–2024. Lite messages
+  support binary encoding; full message classes are required for protobuf JSON.
 - Unary client body limits currently apply in both directions; streaming and
   server request/response limits can be configured independently.
 - No stable API or binary ABI is promised before release. Pin the source and

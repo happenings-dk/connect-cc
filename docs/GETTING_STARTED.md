@@ -152,8 +152,11 @@ Keep `greeter` and `server` alive until every serving operation has joined.
 
 ## 5. Connect the runtime to Asio
 
-Applications own DNS, TCP connection establishment, listener acceptance and the
-event loop. Given an already-connected `asio::ip::tcp::socket`, create an
+For clients, [ManagedTransport](MANAGED_TRANSPORT.md) supplies URL dialing, TLS
+and connection pooling. Applications own the event loop and server listener.
+
+The following lower-level integration is useful when your application already
+manages sockets. Given an already-connected `asio::ip::tcp::socket`, create an
 `HttpConnection` with the appropriate role and explicit cleartext HTTP version:
 
 ```cpp

@@ -30,8 +30,13 @@ Editions calls, Lite-only linkage and installed consumption, streaming and
 pool admission over both HTTP versions/TLS, idle replacement, handshake
 shutdown/deadlines, and cooperative/uncooperative TLS shutdown.
 
-The first expanded local full run passed 232 CTest entries including all ten
-conformance profiles. Eleven Lite tests and the installed Lite consumer passed;
-the macOS native trust probe against `https://connectrpc.com` passed. Additional
-shutdown/reset regressions and hosted/package/sanitizer verification are in
-progress. The checkboxes above remain open until final evidence and docs land.
+The expanded local full run passes 235 CTest entries including all ten
+conformance profiles. Thirteen Lite tests and the installed Lite consumer pass;
+the macOS native trust probe against `https://connectrpc.com` passes. ASan/UBSan
+passes 234 entries plus the new caller-cancellation regression. The README
+managed example compiles and runs against the installed package.
+
+Hosted Linux GCC/Clang/ARM64, macOS and TSan pass the expansion. Windows header
+portability and Linux ASan dependency fixes are being verified; packages and
+fuzzing are still running. The checkboxes remain open until final evidence
+and documentation are complete. See [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md).

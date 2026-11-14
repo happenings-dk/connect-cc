@@ -73,6 +73,8 @@ jobs:
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-v1-${{ matrix.name }}-${{ steps.cache-environment.outputs.image }}-${{ hashFiles('vcpkg.json', 'ci/triplets/**', 'ci/toolchains/**') }}
+          restore-keys: |
+            vcpkg-v1-${{ matrix.name }}-${{ steps.cache-environment.outputs.image }}-
       - name: Linux build tools
         if: runner.os == 'Linux'
         run: |

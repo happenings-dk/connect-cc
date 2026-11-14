@@ -12,7 +12,7 @@ Windows MSVC passes at that revision. The refreshed non-Windows checks use
 `b9d8cbf68c57c8cc47613024466ef553c036af14`, with identical runtime and test
 sources; its only additional change is benchmark dependency caching/build time.
 
-Each compiler lane builds the project, runs all **222 CTest entries**, runs Go
+In the historical baseline below, each compiler lane built the project and ran **222 CTest entries**, runs Go
 checks, and compiles/runs independent installed consumers and all **21 public
 headers**. The ten official profiles contain **8,698 client/server cases**,
 nested within the CTest entries. [CONFORMANCE.md](CONFORMANCE.md) records the
@@ -25,7 +25,7 @@ suite revision and profiles.
 | Linux GCC x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533033665) |
 | Linux Clang x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533038312) |
 | Linux GCC arm64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533042437) |
-| Linux ASan/UBSan | Refreshed run in progress | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533046764) |
+| Linux ASan/UBSan | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533046764) |
 | Linux TSan | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533051124) |
 
 Independent Linux GCC/Clang, ASan/UBSan and TSan runs of the corrected source
@@ -62,7 +62,7 @@ project compilation, tests and installed consumers always run.
   at `a705cb6` exhausted 60 minutes compiling native gRPC dependencies, before
   RPC measurement. `b9d8cbf` adds dependency caching and a 90-minute job budget;
   the [replacement run](https://github.com/happenings-dk/connect-cc/actions/runs/43532346830)
-  is in progress. The measured Linux run at `72d2739` passes all 90
+  passed. The measured Linux run at `72d2739` passes all 90
   scenarios and 449,640 RPCs with zero errors. Raw results, source fingerprints,
   environment and measurement limits are in [BENCHMARKS.md](BENCHMARKS.md).
 - Independent Linux GCC 14, Clang 18, ASan/UBSan and instrumented TSan runs at
@@ -123,3 +123,30 @@ workspace under `build/verification/github/` and `build/verification/`.
 These finite tests are compatibility evidence, not upstream endorsement or
 proof that every possible input has been tested. Pending jobs do not count as
 passes. The evidence above applies to the stated source and platform matrix.
+
+## Support expansion (in progress)
+
+Runtime revision `b55d2d9ad057fb0ada6fa52b659234748edef705` adds Editions 2023–2024,
+Lite-only builds, bounded protocol JSON, managed connections, native trust and
+TLS alert exchange. Local macOS normal and ASan/UBSan runs pass 234/234 CTest
+entries, including the unchanged 8,698-case official matrix. The separate Lite
+build and installed consumer pass, and the native-system-trust HTTPS probe
+succeeds on macOS.
+
+- [First expanded matrix](https://github.com/happenings-dk/connect-cc/actions/runs/43576662346): Linux GCC/Clang/ARM64, macOS and TSan pass full and Lite checks. Windows exposed a public-header `max` macro collision; ASan exposed inconsistent Protobuf container annotations with uninstrumented dependencies. Fuzzing is pending.
+- [Windows portability rerun](https://github.com/happenings-dk/connect-cc/actions/runs/43577799616) at `22fcb33`: pending.
+- [ASan/UBSan with instrumented dependencies](https://github.com/happenings-dk/connect-cc/actions/runs/43577802196) at `22fcb33`: pending.
+- [Expanded vcpkg/Conan package checks](https://github.com/happenings-dk/connect-cc/actions/runs/43576664606): pending.
+
+The previous main-revision CI run `43534701224` passed six compiler/sanitizer
+lanes and fuzzing but failed one Windows gRPC timeout case. The expansion adds a
+regression and preserves completed response trailers when a server subsequently
+resets the still-open upload with CANCEL. This addresses a reproducible route
+from a completed deadline error to a transport cancellation; the hosted rerun
+is required before considering Windows verification complete.
+
+The follow-up local suite passes 235/235, with an additional caller-cancellation
+regression. The Lite-only suite passes 13/13. The README managed-client example
+was compiled against an installed package and returned `Hello, World` from a
+loopback server. Windows installed-header checks now include Windows headers
+first; sanitizer container checks remain enabled.

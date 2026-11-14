@@ -10,15 +10,15 @@ members (including empty members).
 
 Build with upstream Clang and its libFuzzer runtime. Enable ASan/UBSan too;
 `fuzzer-no-link` instruments the library itself, not just the entry point.
-For a prebuilt protobuf runtime, use the compatibility option described in
-SANITIZERS.md when required by that runtime version.
+Build dependencies with the same sanitizer configuration; see
+[SANITIZERS.md](SANITIZERS.md). The Linux helper `ci/run-sanitizer.sh fuzz`
+selects the pinned, instrumented target dependencies and ordinary host tools.
 
 ```sh
 cmake -S . -B build-fuzz -G Ninja \
   -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF \
-  -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON \
-  -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON
+  -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON
 cmake --build build-fuzz --parallel 4
 mkdir -p build-fuzz/corpus build-fuzz/artifacts
 cp fuzz/corpus/* build-fuzz/corpus/

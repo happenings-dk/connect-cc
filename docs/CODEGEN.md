@@ -63,8 +63,12 @@ Wire procedure names always preserve the exact original Protobuf names.
 Include guards have a path digest so files such as `foo-bar.proto` and
 `foo_bar.proto` cannot shadow one another.
 
-Current limitations: proto2/proto3 and the full protobuf runtime only. Editions
-and lite-runtime requests fail explicitly. Generated calls use the runtime's
+Schemas may use proto2, proto3, Editions 2023 or Editions 2024, with full or Lite
+message classes. The plugin advertises its tested Editions range and rejects
+unsupported editions before descriptor resolution. Field feature defaults and
+overrides are handled by Google's C++ message generator. Lite classes support
+binary payloads; see [Protobuf Lite](PROTOBUF_LITE.md) for JSON limitations.
+Generated calls use the runtime's
 transport-independent API: Connect, gRPC and gRPC-Web support all four shapes
 over HTTP/2; Connect/gRPC-Web also support unary, server streaming and client
 streaming over HTTP/1.1. Native gRPC and bidi require HTTP/2 and fail explicitly
@@ -103,6 +107,8 @@ This retains ASan/UBSan instrumentation and selects the runtime-compatible
 Protobuf globals representation. It is off by default: consistently instrumented
 source builds of the dependencies should not silently inherit a compatibility
 workaround intended for a prebuilt runtime.
+It does not fix mismatched container annotations. CI builds Protobuf and the
+target dependencies with ASan/UBSan; see [SANITIZERS.md](SANITIZERS.md).
 
 ## GET eligibility
 

@@ -158,7 +158,7 @@ remaining release gates.
 `Http2Connection::Create` takes ownership of a connected TCP socket.
 `CreateTls` takes ownership of an SSL stream; configure its SSL context first
 with `ConfigureTlsContext`. Clients verify the supplied hostname and both sides
-require h2 ALPN. DNS and TCP connection establishment remain caller-owned.
+require h2 ALPN. Use ManagedTransport for DNS/TCP connection management and pooling, or supply your own connected sockets.
 
 The application spawns `Run()` on its own Asio event loop and retains/joins that
 operation, or uses `ServeHttp2Connection` for server dispatch and joining.

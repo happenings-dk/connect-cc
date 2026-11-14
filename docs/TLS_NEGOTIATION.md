@@ -45,7 +45,7 @@ operation using the selected engine's existing behavior.
 Configure the client SSL context with trusted roots (and a client identity for
 mutual TLS), connect a TCP socket, and call `CreateTls` with the server hostname.
 The hostname is checked against the certificate; DNS hostnames also set SNI.
-DNS resolution and TCP connection establishment remain application-owned.
+Use [ManagedTransport](MANAGED_TRANSPORT.md) for URL dialing and pooling, or manage DNS and sockets yourself with this lower-level API.
 
 ```cpp
 connectrpc::HttpConnectionOptions options;
@@ -99,12 +99,36 @@ wrapper is released before operation startup.
   library operation starts. Handle that completion or disable automatic
   cancellation exceptions in the parent coroutine when using status results.
 - `options.http1` and `options.http2` configure the selected engine's independent
-  metadata, body and queue limits. No pool is provided. Finish and release an
+  metadata, body and queue limits. This lower-level API does not pool connections. Finish and release an
   HTTP/1.1 call before opening another on the same connection.
 
 The explicit-version TLS constructors remain available and keep their original
 ALPN requirements. Their ordinary path still performs its own verified
 handshake; only the private negotiated handoff bypasses a second handshake.
+
+## Trust and shutdown
+
+When no CA file or PEM is supplied, `TlsTrust::kSystem` uses macOS Security
+framework policy or Windows certificate-chain/SSL policy. Other platforms use
+OpenSSL's default trust paths. `TlsTrust::kOpenSsl` explicitly selects OpenSSL
+paths everywhere. Supplying `trust_file` or `trust_pem` replaces system trust
+with that explicit OpenSSL CA configuration; it does not augment native roots.
+Hostname/IP verification, certificate purpose and ALPN remain mandatory.
+
+Native verification uses local stores and cached chain/revocation information.
+It does not perform AIA/OCSP network fetches on the handshake executor. Known
+revocation is rejected; missing fresh revocation evidence does not itself fail
+verification. Servers must provide the necessary intermediate certificates.
+Native OS distrust and trust policy are evaluated directly; exporting a root
+bundle is not used as a substitute for platform policy.
+
+`Shutdown(deadline)` drains admitted RPCs, joins HTTP I/O, sends TLS
+`close_notify`, reads any in-flight TLS application records and waits for the
+peer's alert. The deadline covers the whole process. Peer-initiated clean close
+uses a one-second response bound. `Cancel` remains an immediate abort; it does
+not promise a TLS alert exchange. A successful RPC response is retained even if
+later connection shutdown fails. Applications should inspect connection
+shutdown status separately.
 
 ## Evidence
 

@@ -71,7 +71,7 @@ allocating storage proportional to their length.
   versus decompressed limits.
 - Unit tests cover query syntax, URL limits, malformed UTF-8 and base64, unknown
   parameters, padding, deterministic maps, eligibility and HTTP errors.
-- GET checks are included in the 222-entry suite and exercised in normal and
+- GET checks are included in the 235-entry suite and exercised in normal and
   ASan/UBSan builds. Go generator race tests, vet and staticcheck also cover
   eligibility propagation. See [hosted verification](HOSTED_VERIFICATION.md)
   for exact revisions and platform results.

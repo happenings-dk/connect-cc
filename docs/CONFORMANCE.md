@@ -61,7 +61,7 @@ This downloads the pinned suite and Go dependencies. Go 1.26+ is required.
 Conformance is off by default for runtime-only consumers.
 
 CTest executes client and server modes for each of the five profiles: **ten
-CTest entries**, within the full **222-entry** test suite. The 8,698 official
+CTest entries**, within the full **235-entry** test suite. The 8,698 official
 cases are nested within those entries and must not be added to the CTest count.
 
 For diagnosis, select an individual profile and case family:
