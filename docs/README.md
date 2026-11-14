@@ -10,6 +10,8 @@ release status.
 | Guide | What it covers |
 | --- | --- |
 | [Getting started](GETTING_STARTED.md) | Build/install, a first schema, generated calls and transport setup |
+| [Managed transport](MANAGED_TRANSPORT.md) | URL dialing, connection reuse, capacity, deadlines and joined shutdown |
+| [Protobuf Lite](PROTOBUF_LITE.md) | Binary message codecs, Lite-only builds and package options |
 | [Code generation](CODEGEN.md) | protoc/Buf, generated signatures, namespaces, schema support and GET eligibility |
 | [Streaming](STREAMING.md) | All RPC shapes, byte/message streams, backpressure, lifetime and shutdown |
 | [Callbacks](CALLBACKS.md) | Completion tokens, all four shapes, executors, allocators and cancellation |

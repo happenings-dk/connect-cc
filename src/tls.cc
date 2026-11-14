@@ -1,11 +1,14 @@
 #include "connectrpc/tls.h"
 
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 
 #include <asio/ip/address.hpp>
 #include <asio/ssl/host_name_verification.hpp>
 #include <cstring>
 #include <string_view>
+
+#include "tls_native.h"
 
 namespace connectrpc {
 namespace {
@@ -60,6 +63,8 @@ Status TlsError(const asio::error_code& error) {
 }  // namespace
 Status ConfigureTlsContext(asio::ssl::context& context, bool server,
                            const TlsOptions& options) {
+  if (options.trust != TlsTrust::kSystem && options.trust != TlsTrust::kOpenSsl)
+    return {Code::kInvalidArgument, "invalid TLS trust policy", {}};
   bool has_certificate =
       !options.certificate_file.empty() || !options.certificate_pem.empty();
   bool has_key =
@@ -79,11 +84,21 @@ Status ConfigureTlsContext(asio::ssl::context& context, bool server,
     return {Code::kInternal, "cannot set TLS minimum version", {}};
   }
   asio::error_code error;
+  // Loading roots into an existing OpenSSL store is additive. A new policy
+  // must not retain roots accepted by a previous ConfigureTlsContext call.
+  X509_STORE* roots = X509_STORE_new();
+  if (!roots)
+    return {Code::kInternal, "cannot create TLS trust store", {}};
+  SSL_CTX_set_cert_store(context.native_handle(), roots);  // Takes ownership.
+  SSL_CTX_set_cert_verify_callback(context.native_handle(), nullptr, nullptr);
+  bool native = options.trust_file.empty() && options.trust_pem.empty() &&
+                options.trust == TlsTrust::kSystem &&
+                internal::ConfigureNativeTrust(context.native_handle());
   if (!options.trust_pem.empty())
     context.add_certificate_authority(asio::buffer(options.trust_pem), error);
-  else if (options.trust_file.empty())
+  else if (options.trust_file.empty() && !native)
     context.set_default_verify_paths(error);
-  else
+  else if (!options.trust_file.empty())
     context.load_verify_file(options.trust_file, error);
   if (error) return TlsError(error);
   if (has_certificate) {
@@ -163,6 +178,13 @@ Status ConfigureTlsClient(asio::ssl::stream<asio::ip::tcp::socket>& stream,
                              error);
   if (error) return TlsError(error);
   asio::ip::make_address(hostname, error);
+  int identity =
+      error ? X509_VERIFY_PARAM_set1_host(
+                  SSL_get0_param(stream.native_handle()), hostname.c_str(), 0)
+            : X509_VERIFY_PARAM_set1_ip_asc(
+                  SSL_get0_param(stream.native_handle()), hostname.c_str());
+  if (identity != 1)
+    return {Code::kInvalidArgument, "cannot set TLS peer identity", {}};
   if (error &&
       SSL_set_tlsext_host_name(stream.native_handle(), hostname.c_str()) != 1) {
     return {Code::kInternal, "cannot set TLS server name", {}};

@@ -6,19 +6,20 @@ mkdir -p "$HOME"
 export VCPKG_MAX_CONCURRENCY=4
 export GOCACHE="$PWD/build/go-cache"
 export GOPATH="$PWD/build/.go"
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 flags=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)
-triplet=x64-linux
+triplet=x64-linux-asan
 build_dir="build-linux-$mode"
-installed_dir="$PWD/build/vcpkg-installed"
+installed_dir="$PWD/build/vcpkg-address-installed"
 case "$mode" in
-  address) flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON -DCONNECTCPP_BUILD_CONFORMANCE=ON) ;;
+  address) flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_BUILD_CONFORMANCE=ON) ;;
   thread)
     triplet=x64-linux-tsan
     build_dir=build-linux-thread-instrumented
     installed_dir="$PWD/build/vcpkg-thread-installed"
     flags+=(-DCONNECTCPP_THREAD_SANITIZE=ON -DCONNECTCPP_BUILD_CONFORMANCE=ON)
     ;;
-  fuzz) flags+=(-DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF) ;;
+  fuzz) flags+=(-DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF) ;;
   *) echo 'Expected address, thread or fuzz' >&2; exit 2 ;;
 esac
 cmake -S . -B "$build_dir" -G Ninja \

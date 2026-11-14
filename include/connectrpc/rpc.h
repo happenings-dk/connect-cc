@@ -29,7 +29,7 @@ struct Request {
   T message;
   Metadata headers;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
 };
 // The exchange supplies HTTP transport and adds :scheme/:authority as needed.
 // The transport owns request bytes until it completes. Each call retains its
@@ -45,7 +45,7 @@ struct StreamCallOptions {
   bool compress = false;
   bool accept_gzip = true;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
   StreamLimits limits;       // Incoming response limits.
   StreamLimits send_limits;  // Outgoing request limits.
   Protocol protocol = Protocol::kConnect;
@@ -55,7 +55,7 @@ struct StreamCallOptions {
 struct CallContext {
   Metadata headers;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
 };
 struct StreamServerOptions {
   StreamLimits limits;       // Incoming request limits.

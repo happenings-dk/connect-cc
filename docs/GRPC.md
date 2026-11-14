@@ -47,7 +47,7 @@ The pinned official profile passes 1,084 client and 876 server cases, with no
 skip patterns. Local TCP/TLS tests also exercise all streaming shapes, unary
 JSON/protobuf and gzip combinations, large bodies, error details and misplaced
 status headers with separate leading/trailing metadata. See CONFORMANCE.md for
-the remaining requirements before full compliance can be claimed.
+the tested capability matrix and verification boundaries.
 
 Protocol references: [gRPC HTTP/2 specification](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
 and [HTTP fallback status mapping](https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md).

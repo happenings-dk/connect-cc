@@ -5,14 +5,92 @@ The source is in the private
 with GitHub-hosted Linux, macOS and Windows runners. This report distinguishes
 executed results from pending checks and records the source used for each.
 
-## Current runtime verification
+## Support expansion verification
+
+The final runtime revision is `d7d93b4`; hosted verification uses
+`be8d32e464f3f9c0261a9827335e726e10c2785f`, with identical runtime and test sources.
+It includes deadline saturation, the post-DNS cancellation guard, and fatal UBSan
+with the documented OpenSSL-only configuration in [SANITIZERS.md](SANITIZERS.md).
+
+| Final hosted lane | Result | Evidence |
+| --- | --- | --- |
+| Linux GCC x86-64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539318) |
+| Linux Clang x86-64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539329) |
+| Linux GCC ARM64 | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539317) |
+| macOS Apple Clang | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539307) |
+| Windows MSVC | Pass: 236 full, 13 Lite, consumers and native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539292) |
+| Linux TSan | Pass: 236 full, 13 Lite and consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539326) |
+| Linux ASan/UBSan | Pass: 236 full, 13 Lite and consumers; fatal UBSan | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413539323) |
+
+Retained JUnit reports for all seven compiler lanes show zero failures,
+disabled tests or skipped tests. Their fourteen full/Lite CTest logs contain no
+sanitizer diagnostics. The complete conformance profiles remain included.
+
+- [Final vcpkg and Conan packages](https://github.com/happenings-dk/connect-cc/actions/runs/43583664570):
+  both pass full and Lite consumption. Conan also passes the complete 236-entry
+  protocol suite. Verified binary archives were saved for subsequent runs.
+- [Final benchmark correctness smoke](https://github.com/happenings-dk/connect-cc/actions/runs/43583664552):
+  all five pairings pass across 30 scenarios and 480 measured RPCs, with zero errors.
+  This is a correctness smoke run, not a replacement performance dataset.
+- [Final parser fuzzing](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413507215):
+  **4,463,161 inputs in 121 seconds**, with fatal UBSan and instrumented
+  dependencies. The retained log contains no sanitizer diagnostic or finding.
+
+### Expansion baseline and investigation history
+
+The expansion baseline is `8a6078a9cbca881bd9d81d1066453e12527f54c7`.
+It adds Editions 2023–2024, Protobuf Lite, managed connections, native trust,
+and bounded TLS close-notify. Revision `3d6a6bc` changes the managed-transport
+regression fixture and documentation; its library sources are identical.
+
+Local macOS normal and ASan/UBSan runs pass **236/236 CTest entries**, including
+all ten official profiles and their **8,698 client/server cases**. The separate
+Lite-only suite passes **13/13**. The installed README example returns
+`Hello, World`; the native-trust HTTPS probe passes. Link inspection confirms
+that the Lite consumer uses `libprotobuf-lite` without the full runtime.
+
+| Hosted lane | Source | Result | Evidence |
+| --- | --- | --- | --- |
+| Linux GCC x86-64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536101) |
+| Linux Clang x86-64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536096) |
+| Linux GCC ARM64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536122) |
+| macOS Apple Clang | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536113) |
+| Linux TSan | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536118) |
+| Linux ASan/UBSan | `8a6078a` | 236 full and 13 Lite test exits pass, but retained OpenSSL UBSan diagnostics invalidate a clean result; strict rerun required | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536083) |
+| Windows MSVC | `3d6a6bc` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43580628606/job/132404425262) |
+
+Installed full-runtime checks compile all **22 public headers** independently.
+Windows includes its platform headers first to exercise macro compatibility.
+Lite checks include an independently installed consumer and symbol/link evidence.
+The latest PR state is available on [PR #1](https://github.com/happenings-dk/connect-cc/pull/1/checks).
+
+- [Full and Lite vcpkg/Conan packages](https://github.com/happenings-dk/connect-cc/actions/runs/43576664606)
+  pass at `b55d2d9`, including the full 234-entry Conan protocol suite and
+  independent consumers. The [refresh at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682163)
+  passes both managers, including the full 236-entry Conan suite and the
+  independent Lite consumer.
+- [Parser fuzzing at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398499957)
+  completes **4,872,082 inputs in 121 seconds** without a finding, with
+  ASan/UBSan-instrumented target dependencies. An earlier expansion campaign
+  at `b55d2d9` completed 3,636,382 inputs in 121 seconds without a finding.
+  Both retained fuzz logs were checked for sanitizer diagnostics; the TLS test
+  diagnostics above do not appear in the parser-only campaign. The final rerun
+  additionally makes any UBSan diagnostic fatal.
+- The [benchmark correctness smoke run at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682139)
+  passes. The measured performance dataset below remains explicitly tied
+  to its earlier runtime revision.
+
+The following sections preserve the original acceptance evidence. Their
+222-entry counts do not describe the expanded suite above.
+
+## Initial-scope verification (historical)
 
 The corrected runtime is `72d27398a19fb7975a7624340f6787b3ec4a374b`.
 Windows MSVC passes at that revision. The refreshed non-Windows checks use
 `b9d8cbf68c57c8cc47613024466ef553c036af14`, with identical runtime and test
 sources; its only additional change is benchmark dependency caching/build time.
 
-Each compiler lane builds the project, runs all **222 CTest entries**, runs Go
+In the historical baseline below, each compiler lane built the project and ran **222 CTest entries**, runs Go
 checks, and compiles/runs independent installed consumers and all **21 public
 headers**. The ten official profiles contain **8,698 client/server cases**,
 nested within the CTest entries. [CONFORMANCE.md](CONFORMANCE.md) records the
@@ -25,7 +103,7 @@ suite revision and profiles.
 | Linux GCC x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533033665) |
 | Linux Clang x86-64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533038312) |
 | Linux GCC arm64 | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533042437) |
-| Linux ASan/UBSan | Refreshed run in progress | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533046764) |
+| Linux ASan/UBSan | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533046764) |
 | Linux TSan | **Pass, 222/222**, consumers and headers | [Run](https://github.com/happenings-dk/connect-cc/actions/runs/43533051124) |
 
 Independent Linux GCC/Clang, ASan/UBSan and TSan runs of the corrected source
@@ -62,7 +140,7 @@ project compilation, tests and installed consumers always run.
   at `a705cb6` exhausted 60 minutes compiling native gRPC dependencies, before
   RPC measurement. `b9d8cbf` adds dependency caching and a 90-minute job budget;
   the [replacement run](https://github.com/happenings-dk/connect-cc/actions/runs/43532346830)
-  is in progress. The measured Linux run at `72d2739` passes all 90
+  passed. The measured Linux run at `72d2739` passes all 90
   scenarios and 449,640 RPCs with zero errors. Raw results, source fingerprints,
   environment and measurement limits are in [BENCHMARKS.md](BENCHMARKS.md).
 - Independent Linux GCC 14, Clang 18, ASan/UBSan and instrumented TSan runs at
@@ -123,3 +201,40 @@ workspace under `build/verification/github/` and `build/verification/`.
 These finite tests are compatibility evidence, not upstream endorsement or
 proof that every possible input has been tested. Pending jobs do not count as
 passes. The evidence above applies to the stated source and platform matrix.
+
+## Expansion regressions and corrections
+
+1. The first expanded Windows build exposed `max` macro expansion in public
+   deadline defaults. Parenthesized calls fix the headers; installed-header
+   checks now include Windows headers first.
+2. The first Linux ASan run found a repeated-field container overflow in the
+   Editions round trip with an uninstrumented Protobuf parser. The dedicated
+   ASan/UBSan dependency triplet keeps container annotations and message globals
+   consistent. The [corrected run at `22fcb33`](https://github.com/happenings-dk/connect-cc/actions/runs/43577802196)
+   passes 235 full test exits, 13 Lite test exits and installed consumers without
+   disabling container checks. Retained logs subsequently exposed OpenSSL's
+   generic-function UBSan diagnostics; this is not clean sanitizer evidence.
+   [SANITIZERS.md](SANITIZERS.md) documents the dependency-only configuration
+   correction and the final fatal-UBSan policy.
+3. Windows at `8a6078a` passed all ten official profiles but timed out in the
+   managed-dial fixture. Its 40 ms deadline could expire before TCP connected,
+   leaving the fixture's listener waiting. The correction joins the listener
+   on every path, explicitly tests pre-connect expiration, and observes a TLS
+   ClientHello before checking stalled-handshake cancellation. It passes 20
+   local repetitions and 10 under ASan/UBSan; the Windows rerun is listed above.
+4. Reconfiguring an SSL context could retain previously loaded CA roots. A
+   regression demonstrated a successful handshake after the CA should have
+   been removed. Replacing the trust store now rejects that peer; normal and
+   sanitizer suites include the regression.
+5. Completed gRPC error trailers are preserved if the server subsequently
+   resets the unfinished upload with CANCEL. A deterministic regression covers
+   the ordering; Windows `8a6078a` passes the previously failing gRPC timeout
+   profile, although its unrelated managed-fixture timeout prevented an
+   overall pass for that job.
+6. An extreme managed connect timeout overflowed during conversion from
+   milliseconds to the steady clock's finer duration. The regression reproduced
+   signed overflow under fatal UBSan. Connect and idle deadlines now saturate;
+   the four TCP/TLS reuse tests exercise the maximum millisecond duration.
+   Cancellation is also checked after DNS completion before TCP can reopen a
+   canceled socket. Normal and fatal-UBSan local suites pass 236/236; Lite
+   passes 13/13. Final hosted verification includes these changes.

@@ -518,9 +518,9 @@ TEST_P(ConnectionTest, DroppingHandleBeforeReadStartsCancelsSafely) {
     stream.reset();
     auto result = co_await std::move(pending);
     EXPECT_EQ(result.status().code, Code::kCanceled);
-    EXPECT_TRUE((co_await client_->Shutdown(std::chrono::steady_clock::now() +
-                                            std::chrono::seconds(1)))
-                    .ok());
+    auto shutdown = co_await client_->Shutdown(
+        std::chrono::steady_clock::now() + std::chrono::seconds(1));
+    EXPECT_TRUE(shutdown.ok()) << shutdown.message;
   };
   asio::co_spawn(loop_, client_operation(),
                  [](auto exception) { EXPECT_FALSE(exception); });

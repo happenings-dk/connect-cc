@@ -1,5 +1,9 @@
 # Release acceptance audit
 
+The initial acceptance tables below are historical. Editions, Lite-only builds,
+managed pooling, native trust and bounded TLS close-notify are tracked in
+[SUPPORT_EXPANSION.md](SUPPORT_EXPANSION.md) and the current verification report.
+
 The accepted objective is [PLAN.md](PLAN.md), including client and server,
 all four RPC shapes, the three protocols, HTTP/1.1 and HTTP/2, and the specified
 platform/toolchain gates. The runtime and deliverables below have evidence.
@@ -8,10 +12,10 @@ Compiler, conformance and installed-package results are recorded by revision.
 The source is hosted privately under happenings-dk. Public release, registry
 publication and upstream adoption remain separate work.
 
-This audit covers the implemented scope and records outstanding verification.
+This audit covers the implemented scope and records verification boundaries.
 [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) is the source of truth for
 executed checks and exact revisions, including the verified Windows shutdown fix.
-The current suite has 222 CTest entries. The unchanged official matrix comprises
+The initial-scope suite had 222 CTest entries. The unchanged official matrix comprises
 8,698 client/server cases; the additional local tests are not represented as
 extra official cases. Exact profiles and suite revision are in CONFORMANCE.md.
 
@@ -105,15 +109,13 @@ and [gzip member format](https://www.rfc-editor.org/rfc/rfc1952.html#section-2.2
 Hosted Linux arm64 and the pinned macOS dependency stack now also pass all 222
 tests and installed consumers. The macOS runner required a test-only thread
 portability fix. [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records the
-exact jobs, revisions, original failure and corrected result. Other pending
-jobs remain explicitly unverified; results do not imply every possible
+exact jobs, revisions, original failure and corrected result. Results apply
+to the recorded source and do not imply every possible
 platform/architecture combination.
 
-Application-owned connection establishment, listener lifetime and cooperative
-handler cancellation follow the accepted executor model. Graceful RPC drain is
-bounded and tested; native OS certificate-store integration, TLS close-notify
-conveniences, pooling and custom coroutine machinery are not claimed. The
-code generator explicitly supports proto2/proto3 with the full runtime; Editions
-and lite-runtime schemas fail explicitly. The wire codecs still use Google's
+Applications own listener lifetime, executor threads and cooperative handler
+cancellation. The support expansion adds managed connection establishment and
+pooling, native certificate trust and bounded TLS close-notify. It also adds
+Editions 2023–2024 and Lite binary messages; the wire codecs still use Google's
 Protobuf implementation. Deferred Unreal/mobile/consoles, HTTP/3, custom protobuf
 runtimes and Bazel remain outside the accepted v1 plan.

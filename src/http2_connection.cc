@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "connectrpc/tls.h"
+#include "tls_shutdown.h"
 
 namespace connectrpc {
 namespace {
@@ -220,6 +221,8 @@ class Http2Connection::Impl
   Notification stopped_event_;
   Notification writer_joined_;
   asio::steady_timer shutdown_timer_;
+  bool closing_tls_ = false;
+  bool tls_shutdown_done_ = false;
   bool started_ = false;
   bool stopping_ = false;
   bool draining_ = false;
@@ -320,6 +323,31 @@ bool Http2Connection::Impl::AllClosed() const {
 }
 void Http2Connection::Impl::Stop(Status status) {
   if (stopping_) return;
+  if (status.ok() && started_ && !tls_shutdown_done_) {
+    if (auto* tls =
+            std::get_if<asio::ssl::stream<asio::ip::tcp::socket>>(&socket_);
+        tls && SSL_is_init_finished(tls->native_handle())) {
+      if (closing_tls_) return;
+      closing_tls_ = true;
+      if (!draining_) {
+        shutdown_timer_.expires_after(std::chrono::seconds(1));
+        std::weak_ptr<Impl> weak = shared_from_this();
+        shutdown_timer_.async_wait([weak](asio::error_code error) {
+          if (!error)
+            if (auto self = weak.lock())
+              self->Stop({Code::kDeadlineExceeded,
+                          "TLS shutdown deadline exceeded",
+                          {}});
+        });
+      }
+      // Stop HTTP I/O, then let Run join both directions before SSL_shutdown.
+      asio::error_code ignored;
+      Lowest().cancel(ignored);
+      wake_.close();
+      accepted_.close();
+      return;
+    }
+  }
   stopping_ = true;
   outcome_ = status;
   shutdown_timer_.cancel();
@@ -420,7 +448,7 @@ asio::awaitable<Status> Http2Connection::Impl::Handshake() {
 }
 asio::awaitable<Status> Http2Connection::Impl::Writer() {
   co_await asio::this_coro::throw_if_cancelled(false);
-  while (!stopping_) {
+  while (!stopping_ && !closing_tls_) {
     auto output = session_->Drain();
     if (!output.ok()) co_return output.status();
     std::vector<int32_t> ended = std::exchange(serialized_ends_, {});
@@ -468,11 +496,11 @@ asio::awaitable<Status> Http2Connection::Impl::Run() {
   auto self = shared_from_this();
   asio::co_spawn(strand_, Writer(), [self](auto exception, Status status) {
     if (exception) status = Unexpected();
-    if (!status.ok()) self->Stop(status);
+    if (!status.ok() && !self->closing_tls_) self->Stop(status);
     self->writer_done_ = true;
     self->writer_joined_.try_send(asio::error_code{});
   });
-  while (!stopping_) {
+  while (!stopping_ && !closing_tls_) {
     char buffer[16384];
     auto [error, count] = co_await std::visit(
         [&buffer](auto& socket) {
@@ -481,6 +509,7 @@ asio::awaitable<Status> Http2Connection::Impl::Run() {
         },
         socket_);
     if (error) {
+      if (closing_tls_) break;
       Stop(error == asio::error::eof && AllClosed() ? Status{}
                                                     : IoError(error));
       break;
@@ -496,6 +525,12 @@ asio::awaitable<Status> Http2Connection::Impl::Run() {
       asio::disable_cancellation());
   if (!writer_done_)
     co_await writer_joined_.async_receive(asio::as_tuple(asio::use_awaitable));
+  if (closing_tls_ && !stopping_) {
+    auto& tls = std::get<asio::ssl::stream<asio::ip::tcp::socket>>(socket_);
+    Status shutdown = co_await internal::ShutdownTls(tls);
+    tls_shutdown_done_ = true;
+    Stop(shutdown);
+  }
   co_return outcome_;
 }
 asio::awaitable<StreamResult> Http2Connection::Impl::Open(

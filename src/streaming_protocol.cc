@@ -5,8 +5,8 @@
 #include "connectrpc/grpc_protocol.h"
 #include "connectrpc/grpc_web_protocol.h"
 #include "connectrpc/unary.h"
-#include "google/protobuf/struct.pb.h"
 #include "protocol_internal.h"
+#include "protocol_json.h"
 
 namespace connectrpc {
 namespace {
@@ -176,22 +176,23 @@ Result<std::string> EncodeEndStream(const StreamCompletion& completion,
   if (valid.ok())
     valid = MetadataSize(completion.trailers, limits.max_metadata_bytes);
   if (!valid.ok()) return Result<std::string>(valid);
-  google::protobuf::Struct object;
-  auto& fields = *object.mutable_fields();
+  auto object = internal_json::Value::Object();
+  auto& fields = object.object;
   if (!completion.status.ok()) {
     auto error = EncodeError(completion.status);
     if (!error.ok()) return error;
-    valid = DecodeMessage(*error.value(), Codec::kJson,
-                          *fields["error"].mutable_struct_value());
-    if (!valid.ok()) return Result<std::string>(valid);
+    auto parsed = internal_json::Parse(*error.value());
+    if (!parsed.ok()) return Result<std::string>(parsed.status());
+    fields["error"] = std::move(*parsed.value());
   }
+  if (!completion.trailers.empty())
+    fields["metadata"] = internal_json::Value::Object();
   for (const auto& [name, value] : completion.trailers) {
-    (*fields["metadata"].mutable_struct_value()->mutable_fields())[name]
-        .mutable_list_value()
-        ->add_values()
-        ->set_string_value(value);
+    auto& entry = fields["metadata"].object[name];
+    entry.kind = internal_json::Value::Kind::kArray;
+    entry.array.push_back(internal_json::Value::String(value));
   }
-  auto json = EncodeMessage(object, Codec::kJson);
+  auto json = internal_json::Encode(object);
   if (!json.ok()) return json;
   if (json.value()->size() > limits.max_metadata_bytes)
     return Result<std::string>(TooLarge());
@@ -202,20 +203,20 @@ Result<StreamCompletion> DecodeEndStream(std::string_view payload,
                                          const StreamLimits& limits) {
   if (payload.size() > limits.max_metadata_bytes)
     return Result<StreamCompletion>(TooLarge());
-  google::protobuf::Value object;
-  if (!DecodeMessage(payload, Codec::kJson, object).ok() ||
-      object.kind_case() != google::protobuf::Value::kStructValue)
+  auto object = internal_json::Parse(payload);
+  if (!object.ok() ||
+      object.value()->kind != internal_json::Value::Kind::kObject)
     return Result<StreamCompletion>(Invalid("invalid terminal JSON"));
   StreamCompletion completion;
-  const auto& fields = object.struct_value().fields();
+  const auto& fields = object.value()->object;
   auto error = fields.find("error");
   if (error != fields.end() &&
-      error->second.kind_case() != google::protobuf::Value::kNullValue) {
-    if (error->second.kind_case() != google::protobuf::Value::kStructValue)
+      error->second.kind != internal_json::Value::Kind::kNull) {
+    if (error->second.kind != internal_json::Value::Kind::kObject)
       return Result<StreamCompletion>(Invalid("invalid terminal error"));
     // The official suite requires tolerant reads: absent/null codes map to
     // unknown while retaining message and details. Writers always emit a code.
-    auto encoded = EncodeMessage(error->second.struct_value(), Codec::kJson);
+    auto encoded = internal_json::Encode(error->second);
     if (!encoded.ok()) return Result<StreamCompletion>(encoded.status());
     auto decoded = DecodeError(*encoded.value());
     if (!decoded.ok()) return Result<StreamCompletion>(decoded.status());
@@ -223,21 +224,20 @@ Result<StreamCompletion> DecodeEndStream(std::string_view payload,
   }
   auto metadata = fields.find("metadata");
   if (metadata != fields.end()) {
-    if (metadata->second.kind_case() != google::protobuf::Value::kStructValue)
+    if (metadata->second.kind != internal_json::Value::Kind::kObject)
       return Result<StreamCompletion>(Invalid("invalid terminal metadata"));
-    for (const auto& [name, values] :
-         metadata->second.struct_value().fields()) {
+    for (const auto& [name, values] : metadata->second.object) {
       Status valid_name =
           internal_protocol::ValidateMetadata({{Lower(name), ""}});
       if (!valid_name.ok()) return Result<StreamCompletion>(valid_name);
-      if (values.kind_case() != google::protobuf::Value::kListValue)
+      if (values.kind != internal_json::Value::Kind::kArray)
         return Result<StreamCompletion>(
             Invalid("metadata values must be arrays"));
-      for (const auto& value : values.list_value().values()) {
-        if (value.kind_case() != google::protobuf::Value::kStringValue)
+      for (const auto& value : values.array) {
+        if (value.kind != internal_json::Value::Kind::kString)
           return Result<StreamCompletion>(
               Invalid("metadata values must be strings"));
-        completion.trailers.emplace_back(Lower(name), value.string_value());
+        completion.trailers.emplace_back(Lower(name), value.text);
       }
     }
     Status valid = internal_protocol::ValidateMetadata(completion.trailers);

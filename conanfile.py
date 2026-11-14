@@ -20,8 +20,8 @@ class ConnectCppConan(conan.ConanFile):
     license = "Apache-2.0"
     package_type = "static-library"
     settings = "os", "arch", "compiler", "build_type"
-    options = {"fPIC": [True, False]}
-    default_options = {"fPIC": True}
+    options = {"fPIC": [True, False], "protobuf_lite": [True, False]}
+    default_options = {"fPIC": True, "protobuf_lite": False}
     exports_sources = (
         "CMakeLists.txt", "cmake/*", "include/*", "src/*", "proto/*",
         "packaging/conan/*", "README.md", "LICENSE",
@@ -37,7 +37,8 @@ class ConnectCppConan(conan.ConanFile):
     def requirements(self) -> None:
         """Pins runtime dependencies and exposes public header requirements."""
         self.requires("protobuf/7.36.2", transitive_headers=True,
-                      transitive_libs=True)
+                      transitive_libs=True,
+                      options={"lite": bool(self.options.protobuf_lite)})
         self.requires("asio/1.38.2", transitive_headers=True)
         self.requires("openssl/3.6.5", transitive_headers=True,
                       transitive_libs=True)
@@ -69,6 +70,9 @@ class ConnectCppConan(conan.ConanFile):
         toolchain.variables["BUILD_SHARED_LIBS"] = False
         toolchain.variables["CONNECTCPP_BUILD_GENERATOR"] = False
         toolchain.variables["CONNECTCPP_BUILD_CONFORMANCE"] = False
+        toolchain.variables["CONNECTCPP_PROTOBUF_LITE"] = bool(
+            self.options.protobuf_lite
+        )
         toolchain.variables["ASIO_INCLUDE_DIR"] = (
             self.dependencies["asio"].cpp_info.includedirs[0]
         )
@@ -101,6 +105,19 @@ class ConnectCppConan(conan.ConanFile):
         """Uses the same CMake target name as the native installation."""
         self.cpp_info.libs = ["connectcpp"]
         self.cpp_info.defines = ["ASIO_STANDALONE"]
+        protobuf_component = "libprotobuf"
+        if self.options.protobuf_lite:
+            protobuf_component = "libprotobuf-lite"
+            self.cpp_info.defines.append("CONNECTCPP_PROTOBUF_LITE=1")
+        self.cpp_info.requires = [
+            f"protobuf::{protobuf_component}", "asio::asio", "openssl::ssl",
+            "abseil::absl_strings", "llhttp::llhttp", "libnghttp2::nghttp2",
+            "zlib::zlib",
+        ]
+        if self.settings.os == "Macos":  # pylint: disable=no-member
+            self.cpp_info.frameworks = ["Security", "CoreFoundation"]
+        elif self.settings.os == "Windows":  # pylint: disable=no-member
+            self.cpp_info.system_libs = ["crypt32"]
         self.cpp_info.set_property("cmake_file_name", "connectcpp")
         self.cpp_info.set_property(
             "cmake_target_name", "connectcpp::connectcpp"

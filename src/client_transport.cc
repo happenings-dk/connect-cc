@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <asio/as_tuple.hpp>
 #include <asio/co_spawn.hpp>
 #include <asio/experimental/channel.hpp>
@@ -120,7 +121,12 @@ asio::awaitable<HttpResult> RunUnaryConnection(
     result = HttpResult(stream.status());
   co_await asio::this_coro::reset_cancellation_state(
       asio::disable_cancellation());
-  co_await connection->Cancel();
+  if (result.ok())
+    co_await connection->Shutdown(
+        std::min(options.deadline,
+                 std::chrono::steady_clock::now() + std::chrono::seconds(1)));
+  else
+    co_await connection->Cancel();
   co_await joined.async_receive(asio::as_tuple(asio::use_awaitable));
   co_return result;
 }

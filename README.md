@@ -19,7 +19,7 @@ both coroutine operations and callback completion.
 not an official ConnectRPC project. APIs may change. The pinned official
 conformance profiles pass 8,698 cases on Linux, macOS and Windows MSVC.
 See the [verification report](docs/HOSTED_VERIFICATION.md)
-for exact revisions, results and remaining release gates.
+for exact revisions, results and verification limits.
 
 [Getting started](docs/GETTING_STARTED.md) · [Documentation](docs/README.md) ·
 [Examples](examples/README.md) · [Contributing](CONTRIBUTING.md)
@@ -31,15 +31,18 @@ for exact revisions, results and remaining release gates.
 - **All four RPC shapes.** Unary, server streaming, client streaming and
   bidirectional streaming, with backpressure and bounded queues.
 - **Protobuf and JSON.** Google's generated message classes, structured errors
-  with typed details, leading metadata and trailers.
+  with typed details, leading metadata and trailers. Optional Lite-only builds
+  support binary messages without full Protobuf reflection.
 - **Asynchronous C++.** `co_await` with Asio, or callbacks through `Async`.
-  Applications own their executors, connections and listener lifecycle.
+  Applications own their executors and listener lifecycle.
+- **Managed connections.** URL dialing, DNS/connect/TLS deadlines, HTTP/2 reuse,
+  bounded HTTP/1 pools and idle expiry, without automatic RPC retries.
 - **Transport controls.** HTTP/1.1 and HTTP/2, verified TLS, ALPN, optional mTLS,
   deadlines, cancellation, message limits and bounded connection shutdown.
 - **Application integration.** Client/server interceptors, gzip compression,
   cacheable Connect GET calls and configurable browser CORS middleware.
 - **Build integration.** A Go `protoc` plugin, Buf code generation, an exported
-  CMake target, and local vcpkg and Conan recipes.
+  CMake target, local vcpkg and Conan recipes, and Editions 2023–2024 support.
 
 | Protocol | HTTP/1.1 | HTTP/2 | Message encoding |
 | --- | --- | --- | --- |
@@ -94,17 +97,28 @@ auto status = connectrpc::generated::greet::v1::RegisterGreetServiceHandler(
     server, greeter);
 ```
 
-On the client, supply a runtime `connectrpc::Client` connected to your HTTP
-transport. Inside a coroutine:
+On the client, create a managed transport on your Asio executor. Inside a coroutine:
 
 ```cpp
+#include "connectrpc/managed_transport.h"
+
+auto created = connectrpc::ManagedTransport::Create(
+    co_await asio::this_coro::executor, "https://api.example.com");
+if (!created.ok()) co_return created.status();
+auto transport = *created.value();
+auto runtime = transport->MakeClient();
 connectrpc::generated::greet::v1::GreetServiceClient client(runtime);
 greet::v1::GreetRequest request;
 request.set_name("World");
 
-auto response = co_await client.Greet(std::move(request));
-if (!response.status.ok()) co_return response.status;
-std::cout << response.message->greeting() << '\n';
+connectrpc::CallOptions options;
+options.transport.deadline =
+    std::chrono::steady_clock::now() + std::chrono::seconds(5);
+auto response = co_await client.Greet(std::move(request), options);
+if (response.status.ok()) std::cout << response.message->greeting() << '\n';
+auto closed = co_await transport->Close(
+    std::chrono::steady_clock::now() + std::chrono::seconds(2));
+co_return response.status.ok() ? closed : response.status;
 ```
 
 The [getting started guide](docs/GETTING_STARTED.md) covers building, generating
@@ -148,6 +162,8 @@ registry or stable binary ABI is promised.
 | --- | --- |
 | Installation, code generation and first call | [Getting started](docs/GETTING_STARTED.md) |
 | Generated clients and service handlers | [Code generation](docs/CODEGEN.md) |
+| URL dialing, pooling and lifecycle | [Managed transport](docs/MANAGED_TRANSPORT.md) |
+| Binary messages without reflection | [Protobuf Lite](docs/PROTOBUF_LITE.md) |
 | Streaming, ownership and flow control | [Streaming](docs/STREAMING.md) |
 | Callback completion and cancellation | [Callbacks](docs/CALLBACKS.md) |
 | Authentication, metadata and observation | [Interceptors](docs/INTERCEPTORS.md) |
@@ -165,7 +181,7 @@ public headers, sanitizer instructions and the release audit.
 The official [ConnectRPC conformance suite](https://github.com/connectrpc/conformance)
 is pinned to a source revision and run in both client and server modes. The
 ten configured profiles cover 4,822 client and 3,876 server cases. They form
-part of the 222-entry CTest suite, alongside generated-code, transport,
+part of the full CTest suite, alongside generated-code, transport,
 malformed-input and cross-language interoperability tests. Passing these
 profiles is evidence of interoperability, not official certification or
 maintainer endorsement.
@@ -175,10 +191,12 @@ have passed. [Executed results](docs/HOSTED_VERIFICATION.md)
 distinguish successful revisions from current work. See the
 [release audit](docs/RELEASE_AUDIT.md) for the complete acceptance criteria.
 
-The generator supports proto2/proto3 with the full Protobuf runtime. Editions
-and lite-runtime schemas are rejected explicitly. DNS, TCP connection setup,
-connection pooling, listener management and native OS trust-store integration
-remain application responsibilities. Callbacks still require a C++20 toolchain.
+The generator supports proto2, proto3 and Editions 2023–2024, including Lite
+schemas. Managed transport provides URL dialing and pooling; native macOS and
+Windows certificate policy is used by default, with OpenSSL system roots on
+Linux. TLS shutdown exchanges close-notify within a deadline. Applications own
+listener management and executor threads. Callbacks require a C++20 toolchain;
+Lite application messages support binary encoding only.
 
 ## Contributing
 

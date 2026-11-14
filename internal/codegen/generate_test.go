@@ -173,3 +173,61 @@ func TestGenerateIdempotency(t *testing.T) {
 		})
 	}
 }
+
+func TestEditions(t *testing.T) {
+	for _, edition := range []descriptorpb.Edition{descriptorpb.Edition_EDITION_2023, descriptorpb.Edition_EDITION_2024, descriptorpb.Edition_EDITION_UNKNOWN, descriptorpb.Edition(1002)} {
+		t.Run(edition.String(), func(t *testing.T) {
+			t.Parallel()
+			request := fixture(t)
+			for _, file := range request.ProtoFile {
+				file.Syntax = proto.String("editions")
+				file.Edition = edition.Enum()
+				// The fixture's proto3 optional synthetic oneof is not an Edition field.
+				for _, message := range file.MessageType {
+					for _, nested := range message.NestedType {
+						nested.OneofDecl = nil
+						for _, field := range nested.Field {
+							field.Proto3Optional = nil
+							field.OneofIndex = nil
+						}
+					}
+				}
+			}
+			response, err := Generate(request)
+			supported := edition == descriptorpb.Edition_EDITION_2023 || edition == descriptorpb.Edition_EDITION_2024
+			if !supported {
+				if err == nil || !strings.Contains(err.Error(), "unsupported edition") {
+					t.Fatalf("Generate() = %v; want range error", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if response.GetSupportedFeatures()&uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS) == 0 || response.GetMinimumEdition() != int32(descriptorpb.Edition_EDITION_2023) || response.GetMaximumEdition() != int32(descriptorpb.Edition_EDITION_2024) {
+				t.Fatal("incorrect Editions capability")
+			}
+			if !strings.Contains(response.File[1].GetContent(), "::shared::v1::Outer_Nested") {
+				t.Fatal("missing imported nested message")
+			}
+		})
+	}
+}
+
+func TestLiteServiceBindings(t *testing.T) {
+	t.Parallel()
+	request := fixture(t)
+	for _, file := range request.ProtoFile {
+		if file.Options == nil {
+			file.Options = &descriptorpb.FileOptions{}
+		}
+		file.Options.OptimizeFor = descriptorpb.FileOptions_LITE_RUNTIME.Enum()
+	}
+	response, err := Generate(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(response.File) != 2 {
+		t.Fatalf("generated %d files, want 2", len(response.File))
+	}
+}

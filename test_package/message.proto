@@ -1,0 +1,4 @@
+syntax = "proto3";
+package example;
+option optimize_for = LITE_RUNTIME;
+message Message { string value = 1; }

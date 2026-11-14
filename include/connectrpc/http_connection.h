@@ -42,14 +42,14 @@ class HttpConnection {
       asio::ssl::stream<asio::ip::tcp::socket> socket, Role role,
       std::string hostname, HttpConnectionOptions options = {},
       std::chrono::steady_clock::time_point handshake_deadline =
-          std::chrono::steady_clock::time_point::max());
+          (std::chrono::steady_clock::time_point::max)());
   HttpConnection(const HttpConnection&) = delete;
   HttpConnection& operator=(const HttpConnection&) = delete;
   HttpVersion http_version() const;
   asio::awaitable<Status> Run();
   asio::awaitable<Result<std::shared_ptr<ByteStream>>> Open(
       Metadata headers, std::chrono::steady_clock::time_point deadline =
-                            std::chrono::steady_clock::time_point::max());
+                            (std::chrono::steady_clock::time_point::max)());
   asio::awaitable<Result<std::shared_ptr<ByteStream>>> Accept();
   asio::awaitable<Status> Shutdown(
       std::chrono::steady_clock::time_point deadline);

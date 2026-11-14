@@ -10,18 +10,19 @@ members (including empty members).
 
 Build with upstream Clang and its libFuzzer runtime. Enable ASan/UBSan too;
 `fuzzer-no-link` instruments the library itself, not just the entry point.
-For a prebuilt protobuf runtime, use the compatibility option described in
-SANITIZERS.md when required by that runtime version.
+Build dependencies with the same sanitizer configuration; see
+[SANITIZERS.md](SANITIZERS.md). The Linux helper `ci/run-sanitizer.sh fuzz`
+selects the pinned, instrumented target dependencies and ordinary host tools.
 
 ```sh
 cmake -S . -B build-fuzz -G Ninja \
   -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF \
-  -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON \
-  -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON
+  -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON
 cmake --build build-fuzz --parallel 4
 mkdir -p build-fuzz/corpus build-fuzz/artifacts
 cp fuzz/corpus/* build-fuzz/corpus/
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 build-fuzz/connectcpp_protocol_fuzz build-fuzz/corpus \
   -max_total_time=120 -max_len=4096 -timeout=10 -rss_limit_mb=1024 \
   -artifact_prefix=build-fuzz/artifacts/
@@ -41,6 +42,12 @@ not a claim of exhaustive parser coverage or proof of protocol compliance.
 CONFORMANCE.md tracks executed verification, distinct from configured jobs.
 
 ## Recorded verification
+
+The [support-expansion campaign](https://github.com/happenings-dk/connect-cc/actions/runs/43583664536/job/132413507215)
+at `be8d32e` completed **4,463,161 inputs in 121 seconds** with fatal UBSan and
+ASan/UBSan-instrumented target dependencies. Its retained log has no sanitizer
+diagnostics or findings. The OpenSSL-only instrumentation boundary is documented
+in [SANITIZERS.md](SANITIZERS.md).
 
 At runtime revision `72d2739`, Linux Clang 18 with ASan/UBSan completed
 **7,099,792 inputs in 121 seconds** without a finding. The task used a two-CPU,

@@ -1,0 +1,9 @@
+edition = "2024";
+package edition.v1;
+import "shared/v1/edition.proto";
+service Echo {
+  rpc Say(Outer.Nested) returns (Outer.Nested);
+  rpc Expand(Outer.Nested) returns (stream Outer.Nested);
+  rpc Collect(stream Outer.Nested) returns (Outer.Nested);
+  rpc Chat(stream Outer.Nested) returns (stream Outer.Nested);
+}

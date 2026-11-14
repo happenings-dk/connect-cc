@@ -192,8 +192,9 @@ TEST_P(Http1ConnectionTest,
         EXPECT_EQ(*finish.value(), (Metadata{{"complete", "yes"}}));
       ++completed;
     }
-    co_await client_->Cancel();
-    co_await server_->Cancel();
+    auto shutdown = co_await client_->Shutdown(
+        std::chrono::steady_clock::now() + std::chrono::seconds(2));
+    EXPECT_TRUE(shutdown.ok()) << shutdown.message;
   };
   asio::co_spawn(loop_, serve(), [](auto error) { EXPECT_FALSE(error); });
   asio::co_spawn(loop_, invoke(), [](auto error) { EXPECT_FALSE(error); });

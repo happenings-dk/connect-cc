@@ -20,12 +20,21 @@ func Generate(request *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorRe
 	if request.GetParameter() != "" && request.GetParameter() != "paths=source_relative" {
 		return nil, fmt.Errorf("unsupported parameter %q", request.GetParameter())
 	}
+	// Service bindings delegate all field-level Edition features to protoc's
+	// C++ message generator. Bound descriptor resolution to the tested range.
+	for _, file := range request.GetProtoFile() {
+		if file.GetSyntax() == "editions" && (file.GetEdition() < descriptorpb.Edition_EDITION_2023 || file.GetEdition() > descriptorpb.Edition_EDITION_2024) {
+			return nil, fmt.Errorf("%s: unsupported edition %s (supported: 2023–2024)", file.GetName(), file.GetEdition())
+		}
+	}
 	files, err := protodesc.NewFiles(&descriptorpb.FileDescriptorSet{File: request.GetProtoFile()})
 	if err != nil {
 		return nil, fmt.Errorf("resolve descriptors: %w", err)
 	}
 	response := &pluginpb.CodeGeneratorResponse{
-		SupportedFeatures: proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)),
+		SupportedFeatures: proto.Uint64(uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL | pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)),
+		MinimumEdition:    proto.Int32(int32(descriptorpb.Edition_EDITION_2023)),
+		MaximumEdition:    proto.Int32(int32(descriptorpb.Edition_EDITION_2024)),
 	}
 	seen := make(map[string]bool)
 	for _, filename := range request.GetFileToGenerate() {
@@ -39,12 +48,6 @@ func Generate(request *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorRe
 		file, err := files.FindFileByPath(filename)
 		if err != nil {
 			return nil, fmt.Errorf("find %q: %w", filename, err)
-		}
-		if file.Syntax() == protoreflect.Editions {
-			return nil, fmt.Errorf("%s: editions support is not yet implemented", filename)
-		}
-		if file.Options().(*descriptorpb.FileOptions).GetOptimizeFor() == descriptorpb.FileOptions_LITE_RUNTIME {
-			return nil, fmt.Errorf("%s: full protobuf runtime is required", filename)
 		}
 		if file.Services().Len() == 0 {
 			continue

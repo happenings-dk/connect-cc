@@ -38,7 +38,7 @@ struct UnaryRequest {
   bool accept_gzip = false;
   bool is_get = false;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
 };
 // Preserves leading and trailing metadata even when status is non-OK.
 struct UnaryResponse {

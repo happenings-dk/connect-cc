@@ -29,8 +29,9 @@ docker run --rm --cpus 4 --memory 10g --pids-limit 1024 \
 The harness, command-line options and measurement boundaries are documented in
 [benchmarks/README.md](../benchmarks/README.md). GitHub CI is configured for a
 short correctness smoke run. The [initial hosted run](https://github.com/happenings-dk/connect-cc/actions/runs/43515948558)
-passed all 30 scenarios; a later cold dependency build timed out before RPC
-measurement and is being rerun with caching. See [hosted verification](HOSTED_VERIFICATION.md).
+passed all 30 scenarios. A later cold dependency build timed out before RPC
+measurement; the [replacement run with caching](https://github.com/happenings-dk/connect-cc/actions/runs/43532346830)
+passed. See [hosted verification](HOSTED_VERIFICATION.md) for revisions.
 Equivalent smoke runs passed locally on Linux GCC 14 and macOS Apple Clang, including a
 macOS ASan/UBSan build.
 

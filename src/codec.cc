@@ -9,9 +9,12 @@
 
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/io/zero_copy_stream_impl_lite.h"
+#ifndef CONNECTCPP_PROTOBUF_LITE
 #include "google/protobuf/struct.pb.h"
 #include "google/protobuf/util/json_util.h"
+#endif
 namespace connectrpc {
+#ifndef CONNECTCPP_PROTOBUF_LITE
 Result<std::string> EncodeMessage(const google::protobuf::Message& message,
                                   Codec codec) {
   std::string bytes;
@@ -105,6 +108,7 @@ Status DecodeMessage(std::string_view bytes, Codec codec,
           : google::protobuf::util::JsonStringToMessage(bytes, &message).ok();
   return ok ? Status{} : Status{Code::kInvalidArgument, "decode failed", {}};
 }
+#endif
 namespace {
 Result<std::string> Transform(std::string_view bytes, size_t limit,
                               bool compress) {

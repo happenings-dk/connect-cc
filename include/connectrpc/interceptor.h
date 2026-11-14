@@ -20,7 +20,7 @@ struct CallInfo {
   bool client = true;
   bool use_get = false;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
 };
 // One instance per call. Request hooks may await cooperative asynchronous work;
 // other hooks are synchronous and must not block or throw. Metadata contains

@@ -31,3 +31,7 @@ for example in consumer callbacks headers; do
   cmake --build "build-conan-$example" --parallel 4
   if [[ "$example" != headers ]]; then "./build-conan-$example/$example"; fi
 done
+# The option is a separate package ID; its independent consumer generates a
+# Lite message and exercises binary status details without full Protobuf.
+conan create . -pr:h "$profile" -pr:b "$profile" \
+  --lockfile="$lockfile" --build=missing -o 'connectcpp/*:protobuf_lite=True'

@@ -151,14 +151,14 @@ single-limit factory overload applies that limit to both directions. A
 client-streaming response is provisional until `Finish` confirms success.
 Callback completion and HTTP/1.1 are integrated; see CALLBACKS.md and HTTP1.md.
 [Hosted verification](HOSTED_VERIFICATION.md) records platform results and
-remaining release gates.
+verification boundaries.
 
 ## Connection and stream ownership
 
 `Http2Connection::Create` takes ownership of a connected TCP socket.
 `CreateTls` takes ownership of an SSL stream; configure its SSL context first
 with `ConfigureTlsContext`. Clients verify the supplied hostname and both sides
-require h2 ALPN. DNS and TCP connection establishment remain caller-owned.
+require h2 ALPN. Use ManagedTransport for DNS/TCP connection management and pooling, or supply your own connected sockets.
 
 The application spawns `Run()` on its own Asio event loop and retains/joins that
 operation, or uses `ServeHttp2Connection` for server dispatch and joining.
@@ -206,13 +206,15 @@ cleanup. A connection's `Run()` operation retains its state until I/O finishes.
 Keep the handle until `Finish()` completes. Dropping it immediately after
 `CloseSend()` can cancel bytes that have not yet reached the peer.
 
-`Shutdown(deadline)` stops new calls and drains existing streams, then closes
-the socket. At its deadline it fails remaining calls and closes the connection.
+`Shutdown(deadline)` stops new calls and drains existing streams, then joins
+HTTP I/O and exchanges TLS close-notify before closing a TLS socket. The same
+deadline bounds draining and the TLS exchange. At its deadline it fails
+remaining calls and closes the connection.
 Client GOAWAY is deferred until queued calls finish, so shutdown cannot discard
 request headers that have not yet been transmitted. `Run()` joins its writer
 before returning. Application RPC handler tasks are outside this raw transport
 and must also be joined by their owner or `ServeHttp2Connection`. Applications
-own listener shutdown. A public TLS close-notify convenience is not implemented.
+own listener shutdown. Explicit `Cancel()` aborts without a graceful TLS exchange.
 
 ## Bounds and flow control
 

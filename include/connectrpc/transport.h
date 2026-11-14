@@ -15,7 +15,7 @@
 namespace connectrpc {
 struct TransportOptions {
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
   size_t max_body_bytes = 4 * 1024 * 1024;
   size_t max_metadata_bytes = 16 * 1024;
 };
