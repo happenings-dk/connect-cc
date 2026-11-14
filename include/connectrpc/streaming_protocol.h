@@ -32,7 +32,7 @@ struct StreamingRequest {
   bool gzip = false;
   bool accept_gzip = true;
   std::chrono::steady_clock::time_point deadline =
-      std::chrono::steady_clock::time_point::max();
+      (std::chrono::steady_clock::time_point::max)();
   // Local schema information; not transmitted in HTTP headers.
   StreamShape shape = StreamShape::kBidiStreaming;
   Protocol protocol = Protocol::kConnect;

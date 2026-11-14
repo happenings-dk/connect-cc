@@ -30,14 +30,14 @@ class Http2Connection {
       asio::ssl::stream<asio::ip::tcp::socket> socket, Http2Session::Role role,
       std::string hostname, Http2StreamOptions options = {},
       std::chrono::steady_clock::time_point handshake_deadline =
-          std::chrono::steady_clock::time_point::max());
+          (std::chrono::steady_clock::time_point::max)());
   ~Http2Connection();
   Http2Connection(const Http2Connection&) = delete;
   Http2Connection& operator=(const Http2Connection&) = delete;
   asio::awaitable<Status> Run();
   asio::awaitable<Result<std::shared_ptr<Http2ByteStream>>> Open(
       Metadata headers, std::chrono::steady_clock::time_point deadline =
-                            std::chrono::steady_clock::time_point::max());
+                            (std::chrono::steady_clock::time_point::max)());
   asio::awaitable<Result<std::shared_ptr<Http2ByteStream>>> Accept();
   // Stops admitting streams, drains existing calls, then closes. At deadline,
   // resets remaining calls. Run returns only after its I/O tasks have joined.

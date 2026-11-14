@@ -94,14 +94,14 @@ jobs:
         run: |
           flags=()
           if [[ "$SANITIZER" == address ]]; then
-            flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON)
+            flags+=(-DCONNECTCPP_SANITIZE=ON)
           elif [[ "$SANITIZER" == thread ]]; then
             flags+=(-DCONNECTCPP_THREAD_SANITIZE=ON)
           fi
           cmake -S . -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
-            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
             -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
             -DVCPKG_INSTALL_OPTIONS=--clean-buildtrees-after-build \
             -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
@@ -125,7 +125,7 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
               -DVCPKG_MANIFEST_INSTALL=OFF \
               -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
-              -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+              -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
               -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
               -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_PREFIX_PATH="$PWD/install"
@@ -143,7 +143,7 @@ jobs:
         run: |
           flags=()
           if [[ "$SANITIZER" == address ]]; then
-            flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON)
+            flags+=(-DCONNECTCPP_SANITIZE=ON)
           elif [[ "$SANITIZER" == thread ]]; then
             flags+=(-DCONNECTCPP_THREAD_SANITIZE=ON)
           fi
@@ -151,7 +151,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
             -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
-            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
             -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
             -DCONNECTCPP_PROTOBUF_LITE=ON "${flags[@]}"
           cmake --build build-lite --parallel 3
@@ -161,7 +161,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
             -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
-            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
             -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$PWD/install-lite"
           cmake --build build-lite-consumer --parallel 3 --verbose > build-lite/consumer-build.log 2>&1
@@ -185,7 +185,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
             -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
-            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
             -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$PWD/install"
           cmake --build build-native-trust --parallel 3
@@ -237,13 +237,13 @@ jobs:
           .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake -S . -B build-fuzz -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
-            -DVCPKG_TARGET_TRIPLET=x64-linux -DVCPKG_HOST_TRIPLET=x64-linux \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET=x64-linux-asan -DVCPKG_HOST_TRIPLET=x64-linux \
             -DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
             -DVCPKG_INSTALL_OPTIONS=--clean-buildtrees-after-build \
             -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DBUILD_TESTING=OFF -DCONNECTCPP_BUILD_GENERATOR=OFF \
-            -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON \
-            -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON
+            -DCONNECTCPP_BUILD_FUZZERS=ON -DCONNECTCPP_SANITIZE=ON
           cmake --build build-fuzz --parallel 3
       - name: Fuzz protocol parsers
         run: |

@@ -1,6 +1,8 @@
 #include "connectrpc/managed_transport.h"
 
 #include <asio/as_tuple.hpp>
+#include <asio/bind_cancellation_slot.hpp>
+#include <asio/cancellation_signal.hpp>
 #include <asio/co_spawn.hpp>
 #include <asio/io_context.hpp>
 #include <asio/steady_timer.hpp>
@@ -240,6 +242,48 @@ INSTANTIATE_TEST_SUITE_P(HttpAndTls, ManagedConnectionTest,
                          testing::Combine(testing::Values(HttpVersion::kHttp1,
                                                           HttpVersion::kHttp2),
                                           testing::Bool()));
+TEST(ManagedTransport, CallerCancellationJoinsDialAndDoesNotSendRpc) {
+  asio::io_context loop;
+  asio::ip::tcp::acceptor listener(loop, {asio::ip::address_v4::loopback(), 0});
+  asio::ip::tcp::socket peer(loop);
+  auto created = ManagedTransport::Create(
+      loop.get_executor(),
+      "https://localhost:" + std::to_string(listener.local_endpoint().port()));
+  ASSERT_TRUE(created.ok());
+  auto transport = *created.value();
+  asio::cancellation_signal signal;
+  asio::steady_timer cancel(loop);
+  bool canceled = false, closed = false;
+  auto accept = [&]() -> asio::awaitable<void> {
+    auto [error] = co_await listener.async_accept(
+        peer, asio::as_tuple(asio::use_awaitable));
+    EXPECT_FALSE(error);
+    cancel.expires_after(10ms);
+    cancel.async_wait([&](asio::error_code error) {
+      if (!error) signal.emit(asio::cancellation_type::all);
+    });
+  };
+  auto invoke = [&]() -> asio::awaitable<void> {
+    Metadata headers{{":method", "POST"}, {":path", "/test/Say"}};
+    auto opened = co_await transport->Open(std::move(headers));
+    EXPECT_EQ(opened.status().code, Code::kCanceled);
+    canceled = true;
+    // Close disables inherited cancellation so it always joins its tasks.
+    auto status =
+        co_await transport->Close(std::chrono::steady_clock::now() + 1s);
+    EXPECT_TRUE(status.ok()) << status.message;
+    closed = true;
+  };
+  asio::co_spawn(loop, accept(),
+                 [](auto exception) { EXPECT_FALSE(exception); });
+  asio::co_spawn(
+      loop, invoke(),
+      asio::bind_cancellation_slot(
+          signal.slot(), [](auto exception) { EXPECT_FALSE(exception); }));
+  loop.run();
+  EXPECT_TRUE(canceled);
+  EXPECT_TRUE(closed);
+}
 TEST(ManagedTransport, DialDeadlineAndCloseDuringTlsHandshake) {
   for (bool close_during_dial : {false, true}) {
     asio::io_context loop;

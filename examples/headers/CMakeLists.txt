@@ -19,7 +19,7 @@ file(GLOB public_headers RELATIVE "${public_include_directory}/connectrpc"
 foreach(header IN LISTS public_headers)
   get_filename_component(target_name "${header}" NAME_WE)
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cc"
-    "#include \"connectrpc/${header}\"\n")
+    "#ifdef _WIN32\n#include <winsock2.h>\n#include <windows.h>\n#endif\n#include \"connectrpc/${header}\"\n")
   add_library("header_${target_name}" OBJECT "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.cc")
   target_link_libraries("header_${target_name}" PRIVATE connectcpp::connectcpp)
 endforeach()

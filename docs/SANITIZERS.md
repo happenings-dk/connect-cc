@@ -20,6 +20,14 @@ The Homebrew Protobuf 36.1 runtime separately needs
 See CODEGEN.md for the upstream globals-layout opt-out. A fully instrumented
 Protobuf dependency build should not need that compatibility option.
 
+Linux CI and `ci/run-sanitizer.sh address` use
+`ci/triplets/x64-linux-asan.cmake` to instrument the target dependencies too.
+The Editions repeated-field round trip exposed a container-annotation mismatch
+with the uninstrumented Protobuf 36.2 parser. The globals compatibility option
+only addresses message globals, not container annotations. The ASan triplet
+uses the ordinary `x64-linux` host tools and a separate dependency prefix;
+container checks remain enabled. The fuzz configuration uses the same triplet.
+
 These checks do not replace the remaining platform matrix or parser fuzzing.
 See CONFORMANCE.md for the completed runs and outstanding release gates.
 
