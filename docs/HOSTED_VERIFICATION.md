@@ -5,7 +5,59 @@ The source is in the private
 with GitHub-hosted Linux, macOS and Windows runners. This report distinguishes
 executed results from pending checks and records the source used for each.
 
-## Current runtime verification
+## Support expansion verification
+
+The final runtime revision is `d7d93b4`. It adds the deadline saturation and
+post-DNS cancellation guard described below. Local full, fatal-UBSan and Lite
+checks pass; its final hosted matrix is pending. The baseline evidence below
+must not be read as a hosted pass for those last runtime changes.
+
+The expansion baseline is `8a6078a9cbca881bd9d81d1066453e12527f54c7`.
+It adds Editions 2023–2024, Protobuf Lite, managed connections, native trust,
+and bounded TLS close-notify. Revision `3d6a6bc` changes the managed-transport
+regression fixture and documentation; its library sources are identical.
+
+Local macOS normal and ASan/UBSan runs pass **236/236 CTest entries**, including
+all ten official profiles and their **8,698 client/server cases**. The separate
+Lite-only suite passes **13/13**. The installed README example returns
+`Hello, World`; the native-trust HTTPS probe passes. Link inspection confirms
+that the Lite consumer uses `libprotobuf-lite` without the full runtime.
+
+| Hosted lane | Source | Result | Evidence |
+| --- | --- | --- | --- |
+| Linux GCC x86-64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536101) |
+| Linux Clang x86-64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536096) |
+| Linux GCC ARM64 | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536122) |
+| macOS Apple Clang | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536113) |
+| Linux TSan | `8a6078a` | Pass: 236 full, 13 Lite, installed consumers | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536118) |
+| Linux ASan/UBSan | `8a6078a` | 236 full and 13 Lite test exits pass, but retained OpenSSL UBSan diagnostics invalidate a clean result; strict rerun required | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398536083) |
+| Windows MSVC | `3d6a6bc` | Pass: 236 full, 13 Lite, installed consumers, native trust | [Job](https://github.com/happenings-dk/connect-cc/actions/runs/43580628606/job/132404425262) |
+
+Installed full-runtime checks compile all **22 public headers** independently.
+Windows includes its platform headers first to exercise macro compatibility.
+Lite checks include an independently installed consumer and symbol/link evidence.
+The latest PR state is available on [PR #1](https://github.com/happenings-dk/connect-cc/pull/1/checks).
+
+- [Full and Lite vcpkg/Conan packages](https://github.com/happenings-dk/connect-cc/actions/runs/43576664606)
+  pass at `b55d2d9`, including the full 234-entry Conan protocol suite and
+  independent consumers. The [refresh at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682163)
+  passes both managers, including the full 236-entry Conan suite and the
+  independent Lite consumer.
+- [Parser fuzzing at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682133/job/132398499957)
+  completes **4,872,082 inputs in 121 seconds** without a finding, with
+  ASan/UBSan-instrumented target dependencies. An earlier expansion campaign
+  at `b55d2d9` completed 3,636,382 inputs in 121 seconds without a finding.
+  Both retained fuzz logs were checked for sanitizer diagnostics; the TLS test
+  diagnostics above do not appear in the parser-only campaign. The final rerun
+  additionally makes any UBSan diagnostic fatal.
+- The [benchmark correctness smoke run at `8a6078a`](https://github.com/happenings-dk/connect-cc/actions/runs/43578682139)
+  is running. The measured performance dataset below remains explicitly tied
+  to its earlier runtime revision.
+
+The following sections preserve the original acceptance evidence. Their
+222-entry counts do not describe the expanded suite above.
+
+## Initial-scope verification (historical)
 
 The corrected runtime is `72d27398a19fb7975a7624340f6787b3ec4a374b`.
 Windows MSVC passes at that revision. The refreshed non-Windows checks use
@@ -124,29 +176,39 @@ These finite tests are compatibility evidence, not upstream endorsement or
 proof that every possible input has been tested. Pending jobs do not count as
 passes. The evidence above applies to the stated source and platform matrix.
 
-## Support expansion (in progress)
+## Expansion regressions and corrections
 
-Runtime revision `b55d2d9ad057fb0ada6fa52b659234748edef705` adds Editions 2023–2024,
-Lite-only builds, bounded protocol JSON, managed connections, native trust and
-TLS alert exchange. Local macOS normal and ASan/UBSan runs pass 234/234 CTest
-entries, including the unchanged 8,698-case official matrix. The separate Lite
-build and installed consumer pass, and the native-system-trust HTTPS probe
-succeeds on macOS.
-
-- [First expanded matrix](https://github.com/happenings-dk/connect-cc/actions/runs/43576662346): Linux GCC/Clang/ARM64, macOS and TSan pass full and Lite checks. Windows exposed a public-header `max` macro collision; ASan exposed inconsistent Protobuf container annotations with uninstrumented dependencies. Fuzzing is pending.
-- [Windows portability rerun](https://github.com/happenings-dk/connect-cc/actions/runs/43577799616) at `22fcb33`: pending.
-- [ASan/UBSan with instrumented dependencies](https://github.com/happenings-dk/connect-cc/actions/runs/43577802196) at `22fcb33`: pending.
-- [Expanded vcpkg/Conan package checks](https://github.com/happenings-dk/connect-cc/actions/runs/43576664606): pending.
-
-The previous main-revision CI run `43534701224` passed six compiler/sanitizer
-lanes and fuzzing but failed one Windows gRPC timeout case. The expansion adds a
-regression and preserves completed response trailers when a server subsequently
-resets the still-open upload with CANCEL. This addresses a reproducible route
-from a completed deadline error to a transport cancellation; the hosted rerun
-is required before considering Windows verification complete.
-
-The follow-up local suite passes 235/235, with an additional caller-cancellation
-regression. The Lite-only suite passes 13/13. The README managed-client example
-was compiled against an installed package and returned `Hello, World` from a
-loopback server. Windows installed-header checks now include Windows headers
-first; sanitizer container checks remain enabled.
+1. The first expanded Windows build exposed `max` macro expansion in public
+   deadline defaults. Parenthesized calls fix the headers; installed-header
+   checks now include Windows headers first.
+2. The first Linux ASan run found a repeated-field container overflow in the
+   Editions round trip with an uninstrumented Protobuf parser. The dedicated
+   ASan/UBSan dependency triplet keeps container annotations and message globals
+   consistent. The [corrected run at `22fcb33`](https://github.com/happenings-dk/connect-cc/actions/runs/43577802196)
+   passes 235 full test exits, 13 Lite test exits and installed consumers without
+   disabling container checks. Retained logs subsequently exposed OpenSSL's
+   generic-function UBSan diagnostics; this is not clean sanitizer evidence.
+   [SANITIZERS.md](SANITIZERS.md) documents the dependency-only configuration
+   correction and the final fatal-UBSan policy.
+3. Windows at `8a6078a` passed all ten official profiles but timed out in the
+   managed-dial fixture. Its 40 ms deadline could expire before TCP connected,
+   leaving the fixture's listener waiting. The correction joins the listener
+   on every path, explicitly tests pre-connect expiration, and observes a TLS
+   ClientHello before checking stalled-handshake cancellation. It passes 20
+   local repetitions and 10 under ASan/UBSan; the Windows rerun is listed above.
+4. Reconfiguring an SSL context could retain previously loaded CA roots. A
+   regression demonstrated a successful handshake after the CA should have
+   been removed. Replacing the trust store now rejects that peer; normal and
+   sanitizer suites include the regression.
+5. Completed gRPC error trailers are preserved if the server subsequently
+   resets the unfinished upload with CANCEL. A deterministic regression covers
+   the ordering; Windows `8a6078a` passes the previously failing gRPC timeout
+   profile, although its unrelated managed-fixture timeout prevented an
+   overall pass for that job.
+6. An extreme managed connect timeout overflowed during conversion from
+   milliseconds to the steady clock's finer duration. The regression reproduced
+   signed overflow under fatal UBSan. Connect and idle deadlines now saturate;
+   the four TCP/TLS reuse tests exercise the maximum millisecond duration.
+   Cancellation is also checked after DNS completion before TCP can reopen a
+   canceled socket. Normal and fatal-UBSan local suites pass 236/236; Lite
+   passes 13/13. Final hosted verification includes these changes.

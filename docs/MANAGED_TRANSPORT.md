@@ -62,6 +62,9 @@ without sending the RPC. `Close` joins that completion, so its wall-clock time
 can also depend on the OS resolver. TCP/TLS operations and connection draining
 are interrupted at their deadlines. A running application executor is required
 for timers and cancellation to make progress.
+Very large connect and idle durations saturate at the steady clock's maximum
+deadline instead of overflowing. Cancellation is checked again after DNS
+completion before starting TCP, including when a DNS result was already queued.
 
 The URL accepts `http://` and `https://`, an ASCII/punycode hostname or bracketed
 IPv6 address, an optional numeric port, and an optional path prefix. Credentials,

@@ -22,6 +22,7 @@ cmake -S . -B build-fuzz -G Ninja \
 cmake --build build-fuzz --parallel 4
 mkdir -p build-fuzz/corpus build-fuzz/artifacts
 cp fuzz/corpus/* build-fuzz/corpus/
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 build-fuzz/connectcpp_protocol_fuzz build-fuzz/corpus \
   -max_total_time=120 -max_len=4096 -timeout=10 -rss_limit_mb=1024 \
   -artifact_prefix=build-fuzz/artifacts/

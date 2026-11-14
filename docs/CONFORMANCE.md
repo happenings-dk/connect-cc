@@ -80,15 +80,16 @@ failures; release evidence must include the complete promised profiles.
 
 | Area | Additional coverage |
 | --- | --- |
-| Generated bindings | Golden output, malformed generator requests, naming collisions, imported/nested/optional messages, all shapes and callback calls |
+| Generated bindings | Golden output, malformed generator requests, naming collisions, imported/nested/optional messages, Editions 2023–2024, Lite classes, all shapes and callback calls |
 | Cross-language RPC | C++ client to connect-go and connect-go client to C++, both codecs, compression, metadata, trailers, large messages and typed errors |
 | Framing and limits | Fragmented/coalesced input, malformed headers/envelopes, bounded allocation/decompression, concatenated gzip members and ordered encoding preferences |
 | Transport lifecycle | Multiplexing, flow control, slow peers, early responses, resets, deadline/cancellation races, trailers, queue bounds and joined shutdown |
 | HTTP/1.1 | Sequential reuse, chunking, close-delimited bodies, early response during upload, invalid framing and empty Transfer-Encoding rejection |
-| TLS | Chain/DNS/IP verification, ALPN policy matrix, mTLS, handshake deadlines/cancellation and negotiated engine handoff |
+| TLS | Native trust, private-CA replacement, chain/DNS/IP verification, ALPN policy matrix, mTLS, handshake cancellation, negotiated engine handoff and bounded close-notify |
+| Managed connections | URL validation, HTTP/1 capacity, HTTP/2 multiplexing, reuse, idle replacement, cancellation and joined shutdown; full and Lite builds |
 | gRPC-Web text | Incremental base64 segmentation, body trailers, malformed terminal data and supported TCP/TLS RPC shapes |
 | Browser CORS / GET | Preflight, origins, credentials, exposed metadata, eligible methods, cache keys and bounded URL decoding |
-| API integration | Interceptor lifecycle, associated callback executors/allocators, cancellation timing, installed consumers and 21 independently compiled public headers |
+| API integration | Interceptor lifecycle, associated callback executors/allocators, cancellation timing, installed consumers and 22 independently compiled public headers |
 
 `Interop.Go` uses connect-go v1.21.1 from this repository's Go lockfile. The
 official suite uses its own pinned reference dependencies. The Go race-enabled

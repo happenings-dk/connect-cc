@@ -4,22 +4,23 @@ This is the implementation checklist for the additional support requested after
 the initial protocol matrix passed. Existing protocol behavior remains covered;
 new capabilities require their own tests and installed-package verification.
 
-- [ ] Protobuf Editions: tested edition range, generator features, imported and
+- [x] Protobuf Editions: tested edition range, generator features, imported and
   nested messages, compiled client/server calls and unsupported-range errors.
-- [ ] TLS shutdown: drain RPCs, coordinate reader/writer completion, exchange
+- [x] TLS shutdown: drain RPCs, coordinate reader/writer completion, exchange
   close-notify within a deadline, retain explicit abort/cancellation semantics.
-- [ ] Native trust: macOS/Windows platform verification and Linux system roots,
+- [x] Native trust: macOS/Windows platform verification and Linux system roots,
   explicit private-CA overrides, hostname/trust-policy failures and CI coverage.
-- [ ] Managed transport: URL parsing, DNS/connect/TLS deadlines, HTTP/2 reuse,
+- [x] Managed transport: URL parsing, DNS/connect/TLS deadlines, HTTP/2 reuse,
   bounded HTTP/1 pools, idle expiry, new-call reconnection, no implicit retries,
   cancellation and joined shutdown on application-owned executors.
-- [ ] Protobuf Lite: MessageLite binary codecs and generated services, standalone
+- [x] Protobuf Lite: MessageLite binary codecs and generated services, standalone
   lite-only link, bounded protocol JSON without full-runtime reflection,
   explicit application-JSON capability handling and package/CI configurations.
 - [ ] Documentation/examples and final compiler, sanitizer, conformance and
   installed-package checks on Linux, macOS and Windows.
 
-Work is in the existing primary checkout; no task worktree or PR has been created.
+Work is in the primary checkout; no task worktree was created.
+[PR #1](https://github.com/happenings-dk/connect-cc/pull/1) contains the expansion.
 
 ## Implementation checkpoint
 
@@ -36,7 +37,10 @@ the macOS native trust probe against `https://connectrpc.com` passes. ASan/UBSan
 passes the same 236 entries, including caller cancellation and trust replacement. The README
 managed example compiles and runs against the installed package.
 
-Hosted Linux GCC/Clang/ARM64, macOS and TSan pass the expansion. Windows header
-portability and Linux ASan dependency fixes are being verified; packages and
-fuzzing are still running. The checkboxes remain open until final evidence
-and documentation are complete. See [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md).
+Hosted Linux GCC/Clang/ARM64, macOS, Windows and TSan pass the expansion
+baseline, as do full/Lite packages and parser fuzzing. Final verification adds
+fatal UBSan, OpenSSL's upstream dependency-specific sanitizer configuration,
+deadline saturation and a post-DNS cancellation guard. The last checkbox remains
+open until that hosted matrix finishes. System DNS cancellation remains
+cooperative; see [MANAGED_TRANSPORT.md](MANAGED_TRANSPORT.md).
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact source revisions.

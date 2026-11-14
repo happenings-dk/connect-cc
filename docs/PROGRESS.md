@@ -30,8 +30,9 @@ ten CTest profiles. The expanded local macOS suite passes **236/236** in both no
 its generated-binding/transport tests and an installed consumer without linking
 full Protobuf. The native macOS system-trust HTTPS probe passes.
 
-Hosted verification of the support expansion is in progress at revisions
-`b55d2d9` and `22fcb33`. [HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact runs;
+Hosted verification of the support expansion is in progress, including a strict
+Linux sanitizer rerun after correcting OpenSSL's dependency instrumentation.
+[HOSTED_VERIFICATION.md](HOSTED_VERIFICATION.md) records exact runs;
 prior platform results are historical, not evidence for untested new changes.
 Public release, registry publication and upstream adoption remain separate
 steps. No official certification or maintainer endorsement is claimed.
