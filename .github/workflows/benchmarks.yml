@@ -12,7 +12,8 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # A cold native gRPC dependency build can take more than an hour.
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
@@ -29,6 +30,21 @@ jobs:
           repository: microsoft/vcpkg
           ref: 3d22b64585ca026e881728fd87e541c23a611a43
           path: .ci-vcpkg
+      - name: Prepare dependency cache
+        id: cache-environment
+        run: |
+          cache_path="$RUNNER_TEMP/vcpkg-archives"
+          mkdir -p "$cache_path"
+          echo "VCPKG_DEFAULT_BINARY_CACHE=$cache_path" >> "$GITHUB_ENV"
+          echo "image=${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+      - name: Restore compiled dependencies
+        id: dependency-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-benchmark-v1-${{ steps.cache-environment.outputs.image }}-${{ hashFiles('vcpkg.json', 'ci/triplets/**', 'ci/run-benchmarks.sh') }}
+          restore-keys: |
+            vcpkg-v1-linux-gcc-${{ steps.cache-environment.outputs.image }}-
       - name: Build tools
         run: |
           sudo apt-get update
@@ -36,6 +52,12 @@ jobs:
           .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
       - name: Exercise every benchmark pairing
         run: ci/run-benchmarks.sh "$PWD/build/benchmark-smoke"
+      - name: Save compiled dependencies
+        if: always() && steps.dependency-cache.outcome == 'success' && steps.dependency-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.dependency-cache.outputs.cache-primary-key }}
       - name: Retain harness evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
