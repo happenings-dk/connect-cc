@@ -196,6 +196,21 @@ jobs:
               exit 1
             fi
           fi
+      - name: Generated Lite project
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          go run ./cmd/connectcpp new build-lite-generated
+          cmake -S build-lite-generated -B build-lite-generated/build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%%-?san}" \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install-lite"
+          cmake --build build-lite-generated/build --parallel 3
+          ctest --test-dir build-lite-generated/build --output-on-failure
       - name: Native system trust online probe
         if: matrix.sanitizer == 'none'
         env:
