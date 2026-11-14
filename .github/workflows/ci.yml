@@ -88,6 +88,12 @@ jobs:
           else
             .ci-vcpkg/bootstrap-vcpkg.sh -disableMetrics
           fi
+      - name: Go tool checks
+        run: |
+          go test -race ./...
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+          test -z "$(gofmt -l cmd internal)"
       - name: Configure
         id: configure
         env:
@@ -113,10 +119,6 @@ jobs:
         run: |
           cmake --build build --parallel 3
           ctest --test-dir build --output-on-failure --output-junit results.xml
-          go test -race ./...
-          go vet ./...
-          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-          test -z "$(gofmt -l cmd internal)"
       - name: Installed package consumers
         env:
           COMPILER: ${{ matrix.compiler }}

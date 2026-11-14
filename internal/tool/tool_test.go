@@ -45,12 +45,17 @@ func TestInvalidNames(t *testing.T) {
 	for _, name := range []string{"1project", "bad;name", "bad\nname", "-argument", "name space"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			directory := filepath.Join(t.TempDir(), name)
+			parent := t.TempDir()
+			directory := filepath.Join(parent, name)
 			if err := Run(t.Context(), []string{"new", directory}, io.Discard, io.Discard); err == nil {
 				t.Fatal("accepted unsafe project name")
 			}
-			if _, err := os.Stat(directory); !errors.Is(err, os.ErrNotExist) {
-				t.Fatalf("created invalid directory: %v", err)
+			entries, err := os.ReadDir(parent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entries) != 0 {
+				t.Fatalf("invalid project name created files: %v", entries)
 			}
 		})
 	}

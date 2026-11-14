@@ -18,7 +18,8 @@ CMake regenerates the Protobuf messages and typed Connect bindings automatically
 List schemas with services under `SERVICES`; list message-only imports under
 `MESSAGES` in `connectcpp_generate`. Do not edit generated files.
 
-Try the JSON endpoint:
+With the full Protobuf SDK, try the JSON endpoint (Lite supports binary messages
+only):
 
 ```sh
 curl --header 'Content-Type: application/json' \
