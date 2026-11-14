@@ -1,0 +1,10 @@
+syntax = "proto3";
+package lite.v1;
+option optimize_for = LITE_RUNTIME;
+message Message { string value = 1; map<string, int32> counts = 2; }
+service Echo {
+  rpc Say(Message) returns (Message);
+  rpc Expand(Message) returns (stream Message);
+  rpc Collect(stream Message) returns (Message);
+  rpc Chat(stream Message) returns (stream Message);
+}

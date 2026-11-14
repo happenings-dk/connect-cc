@@ -135,12 +135,73 @@ jobs:
             if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
             "$executable"
           done
+      - name: Lite-only runtime and installed consumer
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+          SANITIZER: ${{ matrix.sanitizer }}
+        run: |
+          flags=()
+          if [[ "$SANITIZER" == address ]]; then
+            flags+=(-DCONNECTCPP_SANITIZE=ON -DCONNECTCPP_PROTOBUF_GLOBALS_COMPAT=ON)
+          elif [[ "$SANITIZER" == thread ]]; then
+            flags+=(-DCONNECTCPP_THREAD_SANITIZE=ON)
+          fi
+          cmake -S . -B build-lite -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCONNECTCPP_PROTOBUF_LITE=ON "${flags[@]}"
+          cmake --build build-lite --parallel 3
+          ctest --test-dir build-lite --output-on-failure --output-junit results.xml
+          cmake --install build-lite --prefix "$PWD/install-lite"
+          cmake -S examples/lite -B build-lite-consumer -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install-lite"
+          cmake --build build-lite-consumer --parallel 3 --verbose > build-lite/consumer-build.log 2>&1
+          executable=build-lite-consumer/lite
+          if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
+          "$executable"
+          if [[ "$RUNNER_OS" != Windows ]]; then
+            nm -C "$executable" > build-lite/symbols.txt
+            if grep -E 'google::protobuf::(DescriptorPool|Reflection|Message::)' build-lite/symbols.txt; then
+              echo 'Full Protobuf symbols in Lite consumer' >&2
+              exit 1
+            fi
+          fi
+      - name: Native system trust online probe
+        if: matrix.sanitizer == 'none'
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          cmake -S examples/native-trust -B build-native-trust -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_MANIFEST_INSTALL=OFF -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+            -DVCPKG_OVERLAY_TRIPLETS="$PWD/ci/triplets" \
+            -DVCPKG_TARGET_TRIPLET="$TRIPLET" -DVCPKG_HOST_TRIPLET="${TRIPLET%-tsan}" \
+            -DCMAKE_CXX_COMPILER="$COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install"
+          cmake --build build-native-trust --parallel 3
+          executable=build-native-trust/native-trust
+          if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
+          "$executable" https://connectrpc.com
       - name: Preserve verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verification-${{ matrix.name }}
           path: |
+            build-lite/Testing/Temporary/*.log
+            build-lite/results.xml
+            build-lite/consumer-build.log
+            build-lite/symbols.txt
             build/Testing/Temporary/*.log
             build/results.xml
             build/CMakeCache.txt

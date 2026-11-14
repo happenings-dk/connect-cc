@@ -6,9 +6,8 @@
 
 #include "absl/strings/escaping.h"
 #include "get_internal.h"
-#include "google/protobuf/struct.pb.h"
-#include "google/protobuf/util/json_util.h"
 #include "protocol_internal.h"
+#include "protocol_json.h"
 
 namespace connectrpc {
 namespace internal_protocol {
@@ -226,61 +225,61 @@ Code CodeFromHttpStatus(int status) {
   }
 }
 Result<std::string> EncodeError(const Status& status) {
-  google::protobuf::Struct object;
-  auto& fields = *object.mutable_fields();
-  fields["code"].set_string_value(std::string(CodeName(status.code)));
+  auto object = internal_json::Value::Object();
+  auto& fields = object.object;
+  fields["code"] =
+      internal_json::Value::String(std::string(CodeName(status.code)));
   if (!status.message.empty())
-    fields["message"].set_string_value(status.message);
+    fields["message"] = internal_json::Value::String(status.message);
+  if (!status.details.empty())
+    fields["details"] = internal_json::Value::Array();
   for (const auto& detail : status.details) {
-    auto& entry = *fields["details"]
-                       .mutable_list_value()
-                       ->add_values()
-                       ->mutable_struct_value()
-                       ->mutable_fields();
-    entry["type"].set_string_value(detail.type);
+    auto entry = internal_json::Value::Object();
+    entry.object["type"] = internal_json::Value::String(detail.type);
     std::string encoded = absl::Base64Escape(detail.value);
     while (!encoded.empty() && encoded.back() == '=') encoded.pop_back();
-    entry["value"].set_string_value(encoded);
+    entry.object["value"] = internal_json::Value::String(std::move(encoded));
+    fields["details"].array.push_back(std::move(entry));
   }
-  return EncodeMessage(object, Codec::kJson);
+  return internal_json::Encode(object);
 }
 Result<DecodedError> DecodeError(std::string_view json, Code fallback_code) {
-  google::protobuf::Struct object;
-  if (!DecodeMessage(json, Codec::kJson, object).ok())
+  auto object = internal_json::Parse(json);
+  if (!object.ok() ||
+      object.value()->kind != internal_json::Value::Kind::kObject)
     return Result<DecodedError>(Invalid("malformed error JSON"));
-  const auto& fields = object.fields();
+  const auto& fields = object.value()->object;
   auto code = fields.find("code");
   Status status{fallback_code, "", {}};
   if (code != fields.end() &&
-      code->second.kind_case() != google::protobuf::Value::kNullValue) {
-    if (code->second.kind_case() != google::protobuf::Value::kStringValue)
+      code->second.kind != internal_json::Value::Kind::kNull) {
+    if (code->second.kind != internal_json::Value::Kind::kString)
       return Result<DecodedError>(Invalid("invalid error code"));
     for (int i = 1; i < 17; ++i)
-      if (code->second.string_value() == kCodes[i])
-        status.code = static_cast<Code>(i);
+      if (code->second.text == kCodes[i]) status.code = static_cast<Code>(i);
   }
   auto message = fields.find("message");
   if (message != fields.end()) {
-    if (message->second.kind_case() != google::protobuf::Value::kStringValue)
+    if (message->second.kind != internal_json::Value::Kind::kString)
       return Result<DecodedError>(Invalid("invalid error message"));
-    status.message = message->second.string_value();
+    status.message = message->second.text;
   }
   auto details = fields.find("details");
   if (details != fields.end()) {
-    if (details->second.kind_case() != google::protobuf::Value::kListValue)
+    if (details->second.kind != internal_json::Value::Kind::kArray)
       return Result<DecodedError>(Invalid("invalid error details"));
-    for (const auto& item : details->second.list_value().values()) {
-      if (item.kind_case() != google::protobuf::Value::kStructValue)
+    for (const auto& item : details->second.array) {
+      if (item.kind != internal_json::Value::Kind::kObject)
         return Result<DecodedError>(Invalid("invalid error detail"));
-      const auto& entry = item.struct_value().fields();
+      const auto& entry = item.object;
       auto type = entry.find("type");
       auto value = entry.find("value");
       if (type == entry.end() || value == entry.end() ||
-          type->second.kind_case() != google::protobuf::Value::kStringValue ||
-          value->second.kind_case() != google::protobuf::Value::kStringValue)
+          type->second.kind != internal_json::Value::Kind::kString ||
+          value->second.kind != internal_json::Value::Kind::kString)
         return Result<DecodedError>(Invalid("invalid error detail fields"));
-      ErrorDetail detail{type->second.string_value(), ""};
-      if (!absl::Base64Unescape(value->second.string_value(), &detail.value))
+      ErrorDetail detail{type->second.text, ""};
+      if (!absl::Base64Unescape(value->second.text, &detail.value))
         return Result<DecodedError>(Invalid("invalid error detail base64"));
       status.details.push_back(std::move(detail));
     }

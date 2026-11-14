@@ -1,0 +1,10 @@
+edition = "2023";
+package edition.v1;
+option features.field_presence = IMPLICIT;
+message Outer {
+  message Nested {
+    string value = 1;
+    int32 count = 2 [features.field_presence = EXPLICIT];
+    repeated int32 numbers = 3 [features.repeated_field_encoding = EXPANDED];
+  }
+}

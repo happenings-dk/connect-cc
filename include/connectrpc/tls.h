@@ -11,8 +11,9 @@
 namespace connectrpc {
 enum class TlsAlpn { kHttp2, kHttp1, kHttp2OrHttp1 };
 enum class TlsProtocol { kHttp2, kHttp1 };
+enum class TlsTrust { kSystem, kOpenSsl };
 struct TlsOptions {
-  // Empty trust_file and trust_pem load OpenSSL's default trust paths.
+  // Explicit CA files/PEM override system trust and use OpenSSL verification.
   std::string trust_file;
   std::string certificate_file;
   std::string private_key_file;
@@ -23,6 +24,10 @@ struct TlsOptions {
   std::string private_key_pem;
   // Servers prefer h2 in dual mode. Existing users remain h2-only.
   TlsAlpn alpn = TlsAlpn::kHttp2;
+  // System uses native policy on macOS/Windows, OpenSSL paths on other OSes.
+  // Native verification is offline: it uses local intermediates/revocation
+  // caches and does not require fresh online revocation evidence.
+  TlsTrust trust = TlsTrust::kSystem;
 };
 // Configure before constructing streams. Server identity is mandatory; client
 // identity is optional. TLS 1.2+ only; ALPN policy is explicit.

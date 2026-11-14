@@ -8,7 +8,7 @@ add_custom_command(OUTPUT "${CONNECTCPP_PLUGIN}"
   VERBATIM)
 add_custom_target(connectcpp_codegen ALL DEPENDS "${CONNECTCPP_PLUGIN}")
 install(PROGRAMS "${CONNECTCPP_PLUGIN}" DESTINATION ${CMAKE_INSTALL_BINDIR})
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT CONNECTCPP_PROTOBUF_LITE)
   set(generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
   add_custom_command(
     OUTPUT "${generated}/test/v1/echo.connect.cc" "${generated}/test/v1/echo.connect.h"
@@ -28,7 +28,7 @@ if(BUILD_TESTING)
   add_test(NAME Go.Generator COMMAND "${CONNECTCPP_GO}" test ./...)
   set_tests_properties(Go.Generator PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 120)
 endif()
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT CONNECTCPP_PROTOBUF_LITE)
   add_custom_command(
     OUTPUT "${generated}/interop/v1/service.connect.cc" "${generated}/interop/v1/service.connect.h"
            "${generated}/interop/v1/service.pb.cc" "${generated}/interop/v1/service.pb.h"
@@ -55,4 +55,19 @@ if(BUILD_TESTING)
     CONNECTCPP_INTEROP_BINARY=$<TARGET_FILE:connectcpp_interop>
     "${interop_go_test}" -test.v)
   set_tests_properties(Interop.Go PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 90)
+endif()
+if(BUILD_TESTING AND NOT CONNECTCPP_PROTOBUF_LITE)
+  add_custom_command(
+    OUTPUT "${generated}/test/v1/edition.connect.cc" "${generated}/test/v1/edition.connect.h"
+           "${generated}/test/v1/edition.pb.cc" "${generated}/test/v1/edition.pb.h"
+           "${generated}/shared/v1/edition.pb.cc" "${generated}/shared/v1/edition.pb.h"
+    COMMAND protobuf::protoc --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/tests/proto
+      --cpp_out=${generated} --connect-cpp_out=${generated}
+      --plugin=protoc-gen-connect-cpp=${CONNECTCPP_PLUGIN}
+      test/v1/edition.proto shared/v1/edition.proto
+    DEPENDS "${CONNECTCPP_PLUGIN}" tests/proto/test/v1/edition.proto tests/proto/shared/v1/edition.proto
+    VERBATIM)
+  target_sources(connectcpp_test PRIVATE tests/editions_test.cc
+    "${generated}/test/v1/edition.connect.cc" "${generated}/test/v1/edition.pb.cc"
+    "${generated}/shared/v1/edition.pb.cc")
 endif()

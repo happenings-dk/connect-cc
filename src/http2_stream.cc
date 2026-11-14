@@ -272,7 +272,13 @@ int Http2StreamSession::Impl::Close(nghttp2_session*, int32_t id, uint32_t code,
   if (found == self.streams_.end()) return 0;
   found->second.wire_closed = true;
   Status status;
-  if (code != NGHTTP2_NO_ERROR || !found->second.got_end) {
+  // Servers may end a response (including gRPC error trailers), then cancel
+  // the still-open upload. Preserve that complete response; otherwise a
+  // deadline_exceeded trailer can nondeterministically become canceled.
+  bool completed_response = self.role_ == Http2Session::Role::kClient &&
+                            found->second.got_end && code == NGHTTP2_CANCEL;
+  if ((!completed_response && code != NGHTTP2_NO_ERROR) ||
+      !found->second.got_end) {
     Code rpc_code =
         code == NGHTTP2_CANCEL ? Code::kCanceled : Code::kUnavailable;
     if (code == NGHTTP2_INTERNAL_ERROR || code == NGHTTP2_PROTOCOL_ERROR)

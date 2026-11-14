@@ -28,5 +28,10 @@
       "host": true
     },
     "zlib"
-  ]
+  ],
+  "features": {
+    "lite": {
+      "description": "Link Protobuf Lite; application message JSON is unavailable"
+    }
+  }
 }

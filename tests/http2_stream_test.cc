@@ -204,6 +204,30 @@ TEST_F(StreamingPair, ResetAndConnectionFailureCompleteEachStreamOnce) {
   EXPECT_TRUE(client_->Release(reset).ok());
   EXPECT_TRUE(client_->Release(other).ok());
 }
+TEST_F(StreamingPair, UploadResetPreservesCompletedErrorTrailers) {
+  Initialize();
+  int32_t id = Request();
+  Pump();
+  ASSERT_TRUE(server_
+                  ->StartResponse(id, {{":status", "200"},
+                                       {"content-type", "application/grpc"}})
+                  .ok());
+  ASSERT_TRUE(server_
+                  ->CloseSend(id, {{"grpc-status", "4"},
+                                   {"grpc-message", "deadline exceeded"}})
+                  .ok());
+  Pump(1);
+  EXPECT_EQ(client_seen_[id].ends, 1);
+  EXPECT_EQ(client_seen_[id].closes, 0);
+  // HTTP/2 CANCEL = 8. The upload is still open when the server cancels it.
+  ASSERT_TRUE(server_->Reset(id, 8).ok());
+  Pump(1);
+  EXPECT_EQ(client_seen_[id].closes, 1);
+  EXPECT_TRUE(client_seen_[id].status.ok());
+  EXPECT_EQ(
+      client_seen_[id].trailers,
+      (Metadata{{"grpc-status", "4"}, {"grpc-message", "deadline exceeded"}}));
+}
 TEST_F(StreamingPair, MetadataAndRetainedStreamLimitsAreEnforced) {
   Http2StreamOptions options;
   options.max_streams = 1;

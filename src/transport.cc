@@ -16,6 +16,7 @@
 #include <utility>
 
 #include "connectrpc/tls.h"
+#include "tls_shutdown.h"
 namespace connectrpc {
 namespace {
 Status IoError(const asio::error_code& error) {
@@ -99,9 +100,16 @@ struct ServerConnection {
     stopping = true;
     failure = std::move(status);
     asio::error_code ignored;
-    socket.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_send,
-                                   ignored);
-    socket.lowest_layer().close(ignored);
+    bool graceful = false;
+    if constexpr (!std::is_same_v<Stream, asio::ip::tcp::socket>)
+      graceful = failure.ok() && SSL_is_init_finished(socket.native_handle());
+    if (graceful) {
+      socket.lowest_layer().cancel(ignored);
+    } else {
+      socket.lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_send,
+                                     ignored);
+      socket.lowest_layer().close(ignored);
+    }
     wake.close();
     for (const auto& [id, signal] : calls)
       signal->emit(asio::cancellation_type::all);
@@ -218,6 +226,21 @@ asio::awaitable<Status> RunServeHttp2(Stream socket, Handler handler) {
     auto [error] = co_await state->joined.async_receive(
         asio::as_tuple(asio::use_awaitable));
     if (error) break;
+  }
+  if constexpr (!std::is_same_v<Stream, asio::ip::tcp::socket>) {
+    if (state->failure.ok()) {
+      DeadlineGuard deadline(
+          executor, state->socket.lowest_layer(),
+          std::chrono::steady_clock::now() + std::chrono::seconds(1));
+      state->failure = co_await internal::ShutdownTls(state->socket);
+      if (deadline.expired())
+        state->failure = {
+            Code::kDeadlineExceeded, "TLS shutdown deadline exceeded", {}};
+      asio::error_code ignored;
+      state->socket.lowest_layer().shutdown(
+          asio::ip::tcp::socket::shutdown_send, ignored);
+      state->socket.lowest_layer().close(ignored);
+    }
   }
   co_return state->failure;
 }

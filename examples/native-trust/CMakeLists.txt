@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.25)
+project(connectcpp_native_trust LANGUAGES CXX)
+find_package(connectcpp CONFIG REQUIRED)
+add_executable(native-trust main.cc)
+target_link_libraries(native-trust PRIVATE connectcpp::connectcpp)
