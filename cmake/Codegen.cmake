@@ -8,6 +8,17 @@ add_custom_command(OUTPUT "${CONNECTCPP_PLUGIN}"
   VERBATIM)
 add_custom_target(connectcpp_codegen ALL DEPENDS "${CONNECTCPP_PLUGIN}")
 install(PROGRAMS "${CONNECTCPP_PLUGIN}" DESTINATION ${CMAKE_INSTALL_BINDIR})
+set(CONNECTCPP_CLI "${CMAKE_CURRENT_BINARY_DIR}/bin/connectcpp${CMAKE_EXECUTABLE_SUFFIX}")
+file(GLOB_RECURSE connectcpp_tool_sources CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/internal/tool/*" "${CMAKE_CURRENT_SOURCE_DIR}/cmd/connectcpp/*")
+add_custom_command(OUTPUT "${CONNECTCPP_CLI}"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/bin"
+  COMMAND "${CONNECTCPP_GO}" build -trimpath -o "${CONNECTCPP_CLI}" ./cmd/connectcpp
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  DEPENDS ${connectcpp_tool_sources} go.mod go.sum
+  VERBATIM)
+add_custom_target(connectcpp_cli ALL DEPENDS "${CONNECTCPP_CLI}")
+install(PROGRAMS "${CONNECTCPP_CLI}" DESTINATION ${CMAKE_INSTALL_BINDIR})
 if(BUILD_TESTING AND NOT CONNECTCPP_PROTOBUF_LITE)
   set(generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
   add_custom_command(

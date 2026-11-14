@@ -1,5 +1,9 @@
 # Getting started
 
+For the shortest path to an independent project, use the
+[SDK installation and project CLI](INSTALLATION.md). This guide explains the
+manual CMake and generation workflow underneath it.
+
 This guide builds Connect for C++, generates a small service, and shows how to
 attach its client and handler to an application-owned Asio connection. Run shell
 commands from the repository root unless stated otherwise.

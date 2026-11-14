@@ -21,7 +21,7 @@ cmake --build build --parallel 3
 ctest --test-dir build --output-on-failure
 ```
 
-The complete configuration currently contains 222 CTest entries. Ten entries
+The complete configuration currently contains 236 CTest entries. Ten entries
 run the official client/server profiles, comprising 8,698 individual cases.
 Do not add those case counts to the CTest entry count.
 
@@ -35,7 +35,8 @@ protocols and transport combinations. Do not hide failures with skip patterns
 or relax assertions to accommodate a compiler or platform.
 
 The runtime returns RPC and transport failures as status values. Applications
-own executors and connection establishment; do not introduce hidden worker
+own executors and may use `ManagedTransport` for connection establishment;
+do not introduce hidden worker
 threads, retries or custom coroutine promises. Streaming code must preserve
 bounded memory, one concurrent reader/writer, backpressure and joined cleanup.
 Public ownership contracts belong in the headers and relevant guide.

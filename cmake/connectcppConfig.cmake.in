@@ -1,4 +1,6 @@
 @PACKAGE_INIT@
+set(_CONNECTCPP_TOOL_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_BINDIR@")
+set(connectcpp_PROTOBUF_LITE @CONNECTCPP_PROTOBUF_LITE@)
 include(CMakeFindDependencyMacro)
 find_dependency(Protobuf CONFIG)
 find_dependency(absl CONFIG)
@@ -10,3 +12,4 @@ pkg_check_modules(NGHTTP2 REQUIRED IMPORTED_TARGET libnghttp2>=1.61.0)
 include("${CMAKE_CURRENT_LIST_DIR}/connectcppTargets.cmake")
 find_path(ASIO_INCLUDE_DIR asio/awaitable.hpp REQUIRED)
 set_property(TARGET connectcpp::connectcpp APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${ASIO_INCLUDE_DIR}")
+include("${CMAKE_CURRENT_LIST_DIR}/ConnectCppGenerate.cmake")

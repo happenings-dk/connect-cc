@@ -138,6 +138,24 @@ jobs:
             if [[ "$RUNNER_OS" == Windows ]]; then executable+='.exe'; fi
             "$executable"
           done
+      - name: SDK setup and independent generated project
+        if: matrix.sanitizer == 'none'
+        env:
+          COMPILER: ${{ matrix.compiler }}
+          TRIPLET: ${{ matrix.triplet }}
+        run: |
+          go run ./cmd/connectcpp setup --source . --prefix "$PWD/sdk install" \
+            --cmake-arg "-DCMAKE_TOOLCHAIN_FILE=$PWD/.ci-vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            --cmake-arg "-DVCPKG_OVERLAY_TRIPLETS=$PWD/ci/triplets" \
+            --cmake-arg "-DVCPKG_TARGET_TRIPLET=$TRIPLET" \
+            --cmake-arg "-DVCPKG_HOST_TRIPLET=$TRIPLET" \
+            --cmake-arg "-DVCPKG_INSTALLED_DIR=$PWD/vcpkg_installed" \
+            --cmake-arg=-DVCPKG_MANIFEST_INSTALL=OFF \
+            --cmake-arg "-DCMAKE_CXX_COMPILER=$COMPILER"
+          cli="$PWD/sdk install/bin/connectcpp"
+          if [[ "$RUNNER_OS" == Windows ]]; then cli+='.exe'; fi
+          cmake -DCLI="$cli" -DPREFIX="$PWD/sdk install" \
+            -DWORK="$PWD/build/sdk-test" -P ci/test-sdk.cmake
       - name: Lite-only runtime and installed consumer
         env:
           COMPILER: ${{ matrix.compiler }}

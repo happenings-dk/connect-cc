@@ -128,6 +128,24 @@ real client and server, all four RPC shapes, interceptors and joined shutdown.
 
 ## Build and use
 
+Install the SDK once and create independent C++ projects with the `connectcpp`
+CLI. With the prerequisites in the [installation guide](docs/INSTALLATION.md):
+
+```sh
+./install.sh                         # from this checkout; installs to ~/.local
+export PATH="$HOME/.local/bin:$PATH"
+connectcpp new hello
+cd hello
+connectcpp build                     # generates bindings, builds, and tests
+./build/greeter serve                # another terminal: ./build/greeter call
+```
+
+Windows can use `install.ps1` from a compiler-enabled developer terminal.
+The generated project is ordinary CMake, with a proto schema, typed client and
+server, and a real round-trip test. `connectcpp skill install` installs the
+companion agent skill. See [SDK installation](docs/INSTALLATION.md) for pinned
+vcpkg setup, existing projects, custom prefixes, and upgrades.
+
 Requirements: CMake 3.25+, a C++20 compiler, and the
 [runtime dependencies](docs/DEPENDENCIES.md). Go 1.26+ is needed to build the
 code generator and conformance tools, but is not a runtime dependency.
@@ -160,6 +178,7 @@ registry or stable binary ABI is promised.
 
 | Topic | Guide |
 | --- | --- |
+| Install the SDK and create another project | [SDK installation](docs/INSTALLATION.md) |
 | Installation, code generation and first call | [Getting started](docs/GETTING_STARTED.md) |
 | Generated clients and service handlers | [Code generation](docs/CODEGEN.md) |
 | URL dialing, pooling and lifecycle | [Managed transport](docs/MANAGED_TRANSPORT.md) |
